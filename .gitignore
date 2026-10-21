@@ -1,5 +1,7 @@
 node_modules/
 dist/
+dist-v2/
+public/icons/
 coverage/
 playwright-report/
 test-results/

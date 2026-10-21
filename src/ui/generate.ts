@@ -25,6 +25,10 @@ export interface GenerateDeps {
   readonly store: CodeStore;
   /** Whether the browser can share image files; when false the Share button is hidden. */
   readonly canShare: boolean;
+  /** Called once, the first time a QR code is shown: the visitor is using the app (gates the install prompt). */
+  readonly onFirstQr?: () => void;
+  /** Called after every render: lets other parts (the update notice) follow what is in the text field. */
+  readonly onTextChange?: () => void;
 }
 
 export interface GenerateApi {
@@ -79,6 +83,8 @@ export function initGenerate(deps: GenerateDeps): GenerateApi {
   let shownAnnounce = '';
   let shownPreview: 'qr' | 'text' | '' = '';
   let shownSaveState: SaveButtonState | '' = '';
+  let reportedFirstQr = false;
+  let interacted = false; // the visitor typed, opened a saved code or changed the level in THIS session (a restored field does not count)
 
   shareButton.hidden = !deps.canShare;
   shareNote.hidden = deps.canShare;
@@ -146,12 +152,17 @@ export function initGenerate(deps: GenerateDeps): GenerateApi {
     else input.removeAttribute('aria-invalid');
     validationPanel.show(vm.panel);
     hasQr = vm.preview.kind === 'qr';
+    if (hasQr && interacted && !reportedFirstQr) {
+      reportedFirstQr = true;
+      deps.onFirstQr?.();
+    }
     renderPreview(vm.preview.kind === 'qr' ? vm.preview.matrix : null, vm.preview.kind === 'qr' ? '' : vm.preview.label);
     renderActions();
     if (vm.announce !== shownAnnounce) {
       shownAnnounce = vm.announce;
       announce(vm.announce);
     }
+    deps.onTextChange?.();
   }
 
   const renderLive = debounce(render, LIVE_DELAY_MS);
@@ -251,6 +262,7 @@ export function initGenerate(deps: GenerateDeps): GenerateApi {
 
   // ---- editing
   input.addEventListener('input', () => {
+    interacted = true;
     state = { ...state, text: input.value, touched: true };
     renderLive();
   });
@@ -264,6 +276,7 @@ export function initGenerate(deps: GenerateDeps): GenerateApi {
   });
 
   const useLow = (ecc: Ecc): void => {
+    interacted = true;
     renderLive.cancel();
     state = { ...state, text: input.value, ecc };
     render();
@@ -307,6 +320,7 @@ export function initGenerate(deps: GenerateDeps): GenerateApi {
 
   return {
     load(item) {
+      interacted = true;
       renderLive.cancel();
       state = { text: item.payload, ecc: item.ecc, touched: true };
       input.value = item.payload;

@@ -19,7 +19,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04   # pinned: ubuntu-latest migrates to Ubuntu 26 from 2026-10-19
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,20 +37,25 @@ jobs:
         if: ${{ !cancelled() }}
       - run: npm test             # vitest run (SPEC-001..003 unit tests)
         if: ${{ !cancelled() }}
-      - run: npm run build        # vite build, base /qr-pocket/
+      - run: npm run build        # icons + vite build (PWA manifest + service worker), base /qr-pocket/
+        if: ${{ !cancelled() }}
+      - run: npm run build:v2     # second build (id v2) into dist-v2: the update tests simulate a new deployment
         if: ${{ !cancelled() }}
       - run: npm run check:size   # fails if initial JS+CSS gzip > 150 KB (target; measured, reported)
         if: ${{ !cancelled() }}
       - run: npm audit --omit=dev --audit-level=high
         if: ${{ !cancelled() }}
+      - name: 'npm audit, all dependencies (informational, build tooling only)'
+        run: npm audit --audit-level=high || true
+        if: ${{ !cancelled() }}
       - run: npm run check:licenses
         if: ${{ !cancelled() }}
 
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox webkit
         if: ${{ !cancelled() }}
       - run: npm run test:e2e     # vite preview --base /qr-pocket/, axe-core, offline, subpath
         if: ${{ !cancelled() }}
-        timeout-minutes: 12
+        timeout-minutes: 25
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
@@ -60,6 +65,9 @@ jobs:
             playwright-report/
             test-results/
             size-report.txt
+            public/icons/
+            dist/manifest.webmanifest
+            dist/sw.js
           retention-days: 14
 
       - name: Summary

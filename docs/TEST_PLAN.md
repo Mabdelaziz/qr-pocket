@@ -1,6 +1,6 @@
 # QR Pocket — Test Plan
 
-Status: DRAFT (Phase 0). **T-001-*, T-002-*, T-003-* PASSED in cloud CI run 39642640265 on 2026-10-21 (180 unit + 91 browser tests, Chromium); PWA/offline (T-004-*), deploy and all physical-phone UAT items are still NOT RUN.** Nothing executes locally; "local testing" = source inspection only (diff review, type/logic reading, a11y/security read-through), recorded as *inspection*, never as a pass.
+Status: DRAFT (Phase 0). **T-001-* to T-004-* PASSED in cloud CI run 39673943074 on 2026-10-21 (210 unit + 131 browser tests: Chromium 121, Firefox 5, WebKit 5); deploy (Phase 5) and all physical-phone UAT items (docs/ANDROID_TESTING.md) are still NOT RUN.** Nothing executes locally; "local testing" = source inspection only (diff review, type/logic reading, a11y/security read-through), recorded as *inspection*, never as a pass.
 
 ## 1. Environments
 | Where | What runs |
@@ -67,3 +67,16 @@ Provide URL after approved deploy. Record result (Pass/Fail/Notes + device model
 
 ## 6. Issue/feedback loop
 Owner reports in a message using: `Uxx · device · Chrome ver · expected · actual · screenshot optional`. Orchestrator logs defects in `docs/PROGRESS.md` (ID, severity S1–S3, spec, status), writes a failing test where practical, fixes, CI reruns, owner retests only the affected steps.
+
+## Phase 4 test inventory (SPEC-004)
+| ID | Case | Where |
+|---|---|---|
+| T-004-1 | Manifest fields, scope/start_url/id, icon list, files exist with exact size, SVG favicon, "any" icon transparent corners, maskable safe zone | `pwa.spec.ts`, `icons.test.ts` |
+| T-004-2 | One worker at `/qr-pocket/sw.js`, scope `/qr-pocket/`, cache names `qr-pocket*`, precache = build assets only | `pwa.spec.ts` |
+| T-004-3 | First online load → offline reload (also new tab); Generate, Save, Saved, Open, Download offline; records persist; online/offline notices and announcements | `pwa.spec.ts` |
+| T-004-4 | No payload/title/record in Cache Storage (URLs and bodies), online and offline | `pwa.spec.ts` |
+| T-004-5 | Two-deployment update: waits for the user, no reload while typing/dialog open, Reload → new build once, records kept, only new precache remains, offline on new build | `update.spec.ts` |
+| T-004-6 | "Later" keeps the build; offer returns next visit | `update.spec.ts` |
+| T-004-7 | Kill-switch recovery: caches deleted, registration gone, IndexedDB intact, app loads | `update.spec.ts` |
+| T-004-8 | Install prompt policy (unit) and behaviour: not on load, after a QR, Not now 30 d, ignored 7 d, once per session, Install app calls the native prompt, appinstalled, standalone, no event; wording; 320–430px; 150/200% text; axe | `installPolicy.test.ts`, `pwa.spec.ts` |
+| T-004-9 | Firefox and WebKit smoke (`@cross`): generate+decode, persistence+dialogs, PNG download, manifest/icons, offline reload | `cross-browser.spec.ts` |
