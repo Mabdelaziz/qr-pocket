@@ -230,13 +230,9 @@ export function initGenerate(deps: GenerateDeps): GenerateApi {
     setNote(null);
     renderActions();
     try {
-      console.info('[diag] share: rendering');
       const { blob, filename } = await makeFile(matrix, text);
-      console.info('[diag] share: rendered', blob.size);
       await shareImageFile(new File([blob], filename, { type: 'image/png' })); // 'cancelled' is not an error
-      console.info('[diag] share: finished');
-    } catch (error) {
-      console.info('[diag] share: failed', String(error));
+    } catch {
       setNote({ kind: 'error', key: 'share-failed', title: 'Couldn’t open the share sheet', body: 'You can download the image instead.' }, key);
     }
     busy = null;

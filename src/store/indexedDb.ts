@@ -42,7 +42,8 @@ export function mapStoreError(error: unknown): StoreError {
 interface TxContext<T> {
   readonly store: IDBObjectStore;
   done(value: T): void;
-  fail(error: unknown): void;
+  /** `abort` is false when the failure came from a request error event: the transaction aborts itself then. */
+  fail(error: unknown, abort?: boolean): void;
 }
 
 /** Reading `indexedDB` can throw (blocked storage, sandboxed frames): treat that as unavailable, never as a crash at load. */
@@ -131,8 +132,9 @@ export function createIndexedDbStore(options: StoreOptions = {}): CodeStore {
       };
       tx.onerror = () => reject(mapStoreError(tx.error));
       tx.onabort = () => reject(mapStoreError(tx.error));
-      const fail = (error: unknown): void => {
+      const fail = (error: unknown, abort = true): void => {
         reject(mapStoreError(error));
+        if (!abort) return; // a request error already aborts the transaction; aborting twice is an error
         try {
           tx.abort();
         } catch {
@@ -176,7 +178,7 @@ export function createIndexedDbStore(options: StoreOptions = {}): CodeStore {
       return inTransaction<SavedCode>('readwrite', ({ store, done, fail }) => {
         const request = store.add(record); // add, never put: an existing record is never overwritten
         request.onsuccess = () => done(record);
-        request.onerror = () => fail(request.error);
+        request.onerror = () => fail(request.error, false);
       });
     },
 
@@ -188,7 +190,7 @@ export function createIndexedDbStore(options: StoreOptions = {}): CodeStore {
           valid.sort((a, b) => b.createdAt - a.createdAt || (a.id < b.id ? 1 : -1));
           done(valid);
         };
-        request.onerror = () => fail(request.error);
+        request.onerror = () => fail(request.error, false);
       });
     },
 
@@ -196,14 +198,14 @@ export function createIndexedDbStore(options: StoreOptions = {}): CodeStore {
       return inTransaction<SavedCode | undefined>('readonly', ({ store, done, fail }) => {
         const request = store.get(id);
         request.onsuccess = () => done(isSavedCode(request.result) ? request.result : undefined);
-        request.onerror = () => fail(request.error);
+        request.onerror = () => fail(request.error, false);
       });
     },
 
     async rename(id: string, title: string): Promise<SavedCode> {
       return inTransaction<SavedCode>('readwrite', ({ store, done, fail }) => {
         const read = store.get(id);
-        read.onerror = () => fail(read.error);
+        read.onerror = () => fail(read.error, false);
         read.onsuccess = () => {
           try {
             const current: unknown = read.result;
@@ -215,7 +217,7 @@ export function createIndexedDbStore(options: StoreOptions = {}): CodeStore {
             const updated: SavedCode = { ...current, title: normalizeTitle(title, current.payload, new Date(stamp)), updatedAt: stamp };
             const write = store.put(updated); // the same record id, by design
             write.onsuccess = () => done(updated);
-            write.onerror = () => fail(write.error);
+            write.onerror = () => fail(write.error, false);
           } catch (error) {
             fail(error); // an exception thrown inside an event handler would otherwise never settle the promise
           }
@@ -227,7 +229,7 @@ export function createIndexedDbStore(options: StoreOptions = {}): CodeStore {
       return inTransaction<void>('readwrite', ({ store, done, fail }) => {
         const request = store.delete(id);
         request.onsuccess = () => done(undefined);
-        request.onerror = () => fail(request.error);
+        request.onerror = () => fail(request.error, false);
       });
     },
   };
