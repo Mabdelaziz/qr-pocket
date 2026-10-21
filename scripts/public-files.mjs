@@ -6,8 +6,14 @@ import { extname, join, relative, sep } from 'node:path';
 export const ALLOWED_EXTENSIONS = ['.html', '.js', '.css', '.svg', '.png', '.webmanifest', '.json'];
 const TEXT_EXTENSIONS = new Set(['.html', '.js', '.css', '.svg', '.webmanifest', '.json']);
 
-/** Absolute URLs that may appear in published text: XML namespace identifiers are labels, not requests. */
-export const URL_ALLOW_LIST = ['http://www.w3.org/'];
+/**
+ * Absolute URLs that may appear in published text. Each entry is a label or a documentation link, never a request:
+ * - XML namespace identifiers (SVG, etc.).
+ * - `https://bit.ly/wb-precache`: found by this scan in Workbox's own runtime file (workbox-*.js), inside an error-message
+ *   string that points to Workbox's documentation. Nothing in the app or the worker fetches it. Exact URL only, so no
+ *   other bit.ly link and no other host passes.
+ */
+export const URL_ALLOW_LIST = ['http://www.w3.org/', 'https://bit.ly/wb-precache'];
 
 const SECRET_PATTERNS = [
   ['GitHub token', /\bgh[pousr]_[A-Za-z0-9]{30,}\b/],

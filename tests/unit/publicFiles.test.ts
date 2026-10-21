@@ -63,6 +63,11 @@ describe('SPEC-005 AC6: public-file scan', () => {
     expect(problems).toEqual(['unexpected absolute URL assets/y.js: https://tracker.example/collect?q=1']);
   });
 
+  it('allows only the exact documentation link found in Workbox, not other links on the same host', () => {
+    expect(scanFiles([...good, file('workbox-1.js', 'see https://bit.ly/wb-precache for details')])).toEqual([]);
+    expect(scanFiles([...good, file('workbox-1.js', 'fetch("https://bit.ly/other")')])).toEqual(['unexpected absolute URL workbox-1.js: https://bit.ly/other']);
+  });
+
   it('requires a valid stamp that matches the commit being built', () => {
     expect(scanFiles(withoutStamp).join('\n')).toMatch(/version\.json is missing/);
     expect(scanFiles([...withoutStamp, file('version.json', 'nope')]).join('\n')).toMatch(/not valid JSON/);
