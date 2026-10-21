@@ -58,7 +58,7 @@ describe('SPEC-005 AC6: public-file scan', () => {
   it('rejects secrets in file names and in image bytes, and protocol-relative external URLs', () => {
     expect(scanFiles([...good, file('assets/' + 'AKIA' + 'Q'.repeat(16) + '.js', '')]).join('\n')).toMatch(/file name looks like a secret/);
     expect(scanFiles([...good, file('assets/' + 'someone' + '@' + 'example' + '.com.png', 'x')]).join('\n')).toMatch(/file name contains an e-mail/);
-    expect(scanFiles([...good, { path: 'icons/a.png', data: Buffer.concat([Buffer.from([137, 80, 78, 71]), Buffer.from('ghp_' + 'A1b2'.repeat(9))]) }]).join('\n')).toMatch(/a\.png: the file bytes look like a secret/);
+    expect(scanFiles([...good, { path: 'icons/a.png', data: Buffer.concat([Buffer.from([137, 80, 78, 71, 0]), Buffer.from('ghp_' + 'A1b2'.repeat(9))]) }]).join('\n')).toMatch(/a\.png: the file bytes look like a secret/);
     expect(scanFiles([...good, file('index.html', '<img src="//cdn.example/x.png">')]).join('\n')).toMatch(/protocol-relative/);
     expect(scanFiles([...good, file('assets/a.css', 'a{background:url(//cdn.example/x.png)}')]).join('\n')).toMatch(/protocol-relative/);
   });
