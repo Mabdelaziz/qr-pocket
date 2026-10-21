@@ -80,6 +80,7 @@ body {
 .hdr {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--s2);
   min-height: 48px;
   padding: var(--s2) max(var(--s4), env(safe-area-inset-right)) var(--s2) max(var(--s4), env(safe-area-inset-left));
@@ -692,4 +693,53 @@ dialog .panel {
   border-radius: 50%;
   background: var(--err-bg);
   color: var(--err-text);
+}
+
+/* ---- Phase 4: offline chip and inline notice bars (SPEC-004) ---- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--s1) var(--s3);
+  border-radius: 999px;
+  background: var(--tonal);
+  color: var(--tonal-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.p-info {
+  background: var(--info-bg);
+  border-color: var(--info-bd);
+  color: var(--info-text);
+}
+.notices {
+  display: flex;
+  flex-direction: column;
+}
+.notebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) max(var(--s4), env(safe-area-inset-right)) var(--s2) max(var(--s4), env(safe-area-inset-left));
+  border: 0;
+  border-bottom: 1px solid;
+  border-radius: 0;
+}
+.nbody {
+  flex: 1;
+  min-width: 12rem;
+}
+.notebar p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.ntitle {
+  font-weight: 700;
+}
+.notebar .pact {
+  margin: 0;
+}
+.p-success .btn-tonal {
+  background: #fff;
 }
