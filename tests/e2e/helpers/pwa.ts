@@ -1,16 +1,23 @@
 // Shared helpers for the PWA browser tests (SPEC-004).
 import { expect, type Page } from '@playwright/test';
 
-/** Resolves once a service worker is active AND controls this page (so offline reloads will be served by it). */
+/**
+ * Resolves once a service worker is ACTIVE and controls this page (so offline reloads will be served by it).
+ * Polls from Node: Playwright's waitForFunction does not await an async predicate, so a Promise was always "truthy"
+ * and returned while the worker was still installing (found by a CI diagnostic).
+ */
 export async function waitForServiceWorker(page: Page): Promise<void> {
-  await page.waitForFunction(
-    async () => {
-      const registration = await navigator.serviceWorker.getRegistration();
-      return !!registration?.active && registration.active.state === 'activated' && !!navigator.serviceWorker.controller;
-    },
-    undefined,
-    { timeout: 30_000 },
-  );
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          if (!('serviceWorker' in navigator)) return false;
+          const registration = await navigator.serviceWorker.getRegistration();
+          return !!registration?.active && registration.active.state === 'activated' && !!navigator.serviceWorker.controller;
+        }),
+      { timeout: 30_000, message: 'service worker should become active and control the page' },
+    )
+    .toBe(true);
 }
 
 export interface CacheEntry {
