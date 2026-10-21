@@ -1,4 +1,3 @@
-import { announce } from '../ui/announce';
 import {
   INSTALL_TEXT,
   parseInstallState,
@@ -88,7 +87,8 @@ export function initInstallPrompt(notices: Notices): InstallPrompt {
         },
       ],
     });
-    announce(`${INSTALL_TEXT.title}. ${INSTALL_TEXT.description}`);
+    // Deliberately NOT announced: it is not urgent, would interrupt the "QR code ready" message, and the labelled group is
+    // the first thing a screen-reader user meets at the top of the page.
   }
 
   async function install(): Promise<void> {

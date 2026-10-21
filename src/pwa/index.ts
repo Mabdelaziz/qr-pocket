@@ -8,6 +8,14 @@ import { registerServiceWorker } from './register';
 const READY_KEY = 'qr-pocket.offlineReady';
 const OFFLINE_TEXT = 'You’re offline. Creating, saving and exporting still work.';
 
+async function hasAppCache(): Promise<boolean> {
+  try {
+    return (await caches.keys()).some((name) => name.startsWith('qr-pocket'));
+  } catch {
+    return false;
+  }
+}
+
 function alreadyToldOfflineReady(): boolean {
   try {
     return localStorage.getItem(READY_KEY) === '1';
@@ -51,14 +59,18 @@ export function initPwa(textField: HTMLTextAreaElement): InstallPrompt {
   registerServiceWorker({
     onOfflineReady() {
       if (alreadyToldOfflineReady()) return;
-      rememberOfflineReady();
-      notices.show('ready', {
-        kind: 'success',
-        icon: 'ok',
-        text: 'Ready to work offline.',
-        actions: [{ id: 'dismiss', label: 'Dismiss', onClick: () => notices.hide('ready') }],
+      // Only claim offline support if the app's precache really exists (a recovery worker deletes it).
+      void hasAppCache().then((present) => {
+        if (!present || alreadyToldOfflineReady()) return;
+        rememberOfflineReady();
+        notices.show('ready', {
+          kind: 'success',
+          icon: 'ok',
+          text: 'Ready to work offline.',
+          actions: [{ id: 'dismiss', label: 'Dismiss', onClick: () => notices.hide('ready') }],
+        });
+        announce('Ready to work offline.');
       });
-      announce('Ready to work offline.');
     },
     onUpdateReady(accept) {
       notices.show('update', {

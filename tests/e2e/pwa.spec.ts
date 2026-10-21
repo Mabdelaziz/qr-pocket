@@ -26,6 +26,8 @@ async function scan(page: Page, label: string): Promise<void> {
   expect(results.violations, label).toEqual([]);
 }
 
+test.describe.configure({ timeout: 90_000 }); // service-worker tests install, go offline and reload; shared CI runners are slow
+
 test.describe('SPEC-004 AC1/AC14: manifest, icons and CSP', () => {
   test.use({ serviceWorkers: 'block' });
 
@@ -137,11 +139,17 @@ test.describe('SPEC-004 AC2-AC4/AC8/AC9: service worker, offline use and caches'
     await waitForServiceWorker(page);
     const info = await page.evaluate(async () => {
       const registrations = await navigator.serviceWorker.getRegistrations();
-      return { scopes: registrations.map((r) => r.scope), scripts: registrations.map((r) => r.active?.scriptURL ?? ''), caches: await caches.keys() };
+      return {
+        scopes: registrations.map((r) => r.scope),
+        scripts: registrations.map((r) => (r.active ?? r.waiting ?? r.installing)?.scriptURL ?? ''),
+        controller: navigator.serviceWorker.controller?.scriptURL ?? '',
+        caches: await caches.keys(),
+      };
     });
     expect(info.scopes).toEqual([new URL('./', page.url()).href]); // origin + /qr-pocket/
     expect(info.scopes[0]).toMatch(/\/qr-pocket\/$/);
-    expect(info.scripts).toEqual([new URL('sw.js', page.url()).href]);
+    expect(info.controller).toBe(new URL('sw.js', page.url()).href); // the page is controlled by /qr-pocket/sw.js
+    expect(info.scripts.filter((s) => s !== '').every((s) => s === info.controller)).toBe(true);
     expect(info.caches.length).toBeGreaterThan(0);
     for (const name of info.caches) expect(name).toMatch(/^qr-pocket/);
 
@@ -292,7 +300,9 @@ test.describe('SPEC-004 AC10: install prompt', () => {
     await expect(bar).toContainText('Install QR Pocket for quick access and offline QR creation. No account needed.');
     await expect(bar.getByRole('button', { name: 'Install app' })).toBeVisible();
     await expect(bar.getByRole('button', { name: 'Not now' })).toBeVisible();
-    await expect(page.locator('#sr-status')).toContainText('Keep QR Pocket on your phone');
+    // A labelled group (named by its title); not announced, so it never interrupts the "QR code ready" message.
+    await expect(page.getByRole('group', { name: 'Keep QR Pocket on your phone' })).toBeVisible();
+    await expect(page.locator('#sr-status')).toHaveText('QR code ready.');
     await scan(page, 'install prompt');
     // Inline, above the content: the field and the actions are still reachable and unobstructed.
     await expect(input(page)).toBeVisible();

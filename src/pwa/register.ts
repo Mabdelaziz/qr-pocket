@@ -52,6 +52,7 @@ export function registerServiceWorker(handlers: RegisterHandlers): void {
   container
     .register(`${base}sw.js`, { scope: base })
     .then((registration) => {
+      if (!registration) return; // registration was blocked or refused: nothing to track
       if (registration.waiting && container.controller) offerUpdate(registration);
       else if (registration.installing) track(registration, registration.installing);
       registration.addEventListener('updatefound', () => {

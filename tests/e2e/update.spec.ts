@@ -16,6 +16,7 @@ const DRAFT = 'unsaved draft text';
 const UPDATE_WARNING = 'A new version is ready. Reloading will clear the text you are typing.';
 
 test.use({ serviceWorkers: 'allow' });
+test.describe.configure({ timeout: 90_000 }); // deploy simulation: install, update check, reload, offline reload
 
 const mainScript = (dir: string): string => {
   const found = readdirSync(resolve(dir, 'assets')).find((f) => /^index-.+\.js$/.test(f));
@@ -91,7 +92,7 @@ test.describe('SPEC-004 AC5/AC6: a new deployment is offered, never forced', () 
       // AC6: the user accepts.
       await updateBar(page).getByRole('button', { name: 'Reload' }).click();
       await expectBuild(page, 'v2');
-      expect(loads).toBe(1); // exactly one reload
+      await expect.poll(() => loads).toBe(1); // exactly one reload (the load event follows the module script)
       await expect(input(page)).toHaveValue(''); // the warned-about draft is gone, as announced
       await waitForServiceWorker(page);
 

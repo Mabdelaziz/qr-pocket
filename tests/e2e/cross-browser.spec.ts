@@ -3,7 +3,7 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import jsQR from 'jsqr';
-import { card, cards, dbRecords, input, installFaultInjector, openSaved, previewCanvas, saveText } from './helpers/app';
+import { cards, dbRecords, input, installFaultInjector, openSaved, previewCanvas, saveText } from './helpers/app';
 import { decodePng } from './helpers/png';
 import { waitForServiceWorker } from './helpers/pwa';
 
@@ -45,7 +45,7 @@ test('@cross SPEC-004 AC13: saved codes persist across a reload; the Saved list,
   await page.getByRole('textbox', { name: 'Title' }).fill('Renamed');
   await page.keyboard.press('Enter');
   await expect(rename).toBeHidden();
-  await expect(card(page, 'Renamed')).toBeVisible();
+  await expect(page.locator('#saved-body h2', { hasText: 'Renamed' })).toBeVisible(); // titles only: card text is "...RenameDownload..." and contains "renamed"
 
   await page.getByRole('button', { name: 'Delete Renamed' }).click();
   const confirm = page.getByRole('dialog', { name: 'Delete this code?' });
@@ -86,7 +86,9 @@ test('@cross SPEC-004 AC13: the manifest and icons are served', async ({ page })
 test.describe('@cross offline', () => {
   test.use({ serviceWorkers: 'allow' });
 
-  test('@cross SPEC-004 AC13: the service worker installs and the app reloads and works offline', async ({ page, context }) => {
+  test('@cross SPEC-004 AC13: the service worker installs and the app reloads and works offline', async ({ page, context, browserName }) => {
+    const supported = await page.evaluate(() => 'serviceWorker' in navigator);
+    test.skip(!supported, `${browserName} does not expose service workers on this origin (insecure-context rules); offline is covered on Chromium`);
     await page.reload(); // load once with workers allowed
     await waitForServiceWorker(page);
     await context.setOffline(true);
