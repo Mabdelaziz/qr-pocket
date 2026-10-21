@@ -1,29 +1,44 @@
 # QR Pocket — Progress
 
-**Current milestone:** Phase 2 (Core, SPEC-001) — **source, tests and CI config written 2026-10-21; nothing executed; awaiting G2** (owner authorisation for repo creation / first push / first cloud CI run). Gates: G1 approved 2026-10-21; **G1b approved 2026-10-21** (with the refinements recorded in `docs/design/SCREEN_SPECS.md` "Final G1b refinements" and ADR-013); Phase 2 authorised 2026-10-21.
-**Next small task:** after G2, run the first cloud CI exactly as in `docs/CI_SETUP.md`, triage failures (esp. T-001-2b ZXing/Arabic, ADR-014), repair, record evidence. Then Phase 3 (SPEC-002/003).
+**Current milestone:** Phase 2 (Core, SPEC-001) — **cloud CI is green** (run https://github.com/Mabdelaziz/qr-pocket/actions/runs/39630462029, commit `95ed734`, PR #1 https://github.com/Mabdelaziz/qr-pocket/pull/1, 2026-10-21). **Awaiting your approval to continue to Phase 3** and to merge PR #1. Gates: G1 ✔, G1b ✔, **G2 ✔ (2026-10-21; public repo, Pages disabled, no deployment)**.
+**Next small task (after your approval):** merge PR #1, then Phase 3 (SPEC-002 local library, SPEC-003 export/share), tests first, same loop.
 
-## Verified results
-**No tests, typecheck, lint, build or CI have been executed.** Everything below is inspection only:
-- Phase 2 source and tests were written and then statically reviewed by an independent subagent (source reading, no execution). Findings and fixes are listed in `specs/SPEC-001-qr-generation.md` (Completion evidence). The reviewer's verdict: CI would not be green on the first run mainly because `package-lock.json` does not exist yet; the code-level S1 (a Playwright strict-mode selector clash) was fixed.
-- Registry metadata (versions, licences, engines, deprecation) was read from registry.npmjs.org on 2026-10-21; compatibility is declared, not proven. `qrcode-generator` 2.0.4's source was read: its default byte conversion is lossy (ADR-014); our wrapper overrides it with UTF-8.
-- Design mockups were rendered in installed Edge (headless screenshots) and reviewed visually; that is not a product test.
+## Verified results (actual CI evidence)
+Repository: https://github.com/Mabdelaziz/qr-pocket (PUBLIC, Pages disabled, default token read-only). Branch `phase-2-core` → PR #1. Runner: GitHub-hosted `ubuntu-24.04`, Node 22.
 
-| Check | Status |
+| Run | What | Result |
+|---|---|---|
+| [39627052940](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39627052940) | "Generate lockfile (manual)" bootstrap, commit `ecece43` | **PASS** (19 s). Lockfile downloaded as an artifact (no write permissions), verified offline: 166 packages, `sha512` integrity on all, all from `registry.npmjs.org`, 13 direct deps locked at exactly the pinned versions, no git/file sources; only install script is macOS-only `fsevents` (ignored by `.npmrc`). |
+| [39627260313](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39627260313) | CI, commit `b307747` | **CANCELLED at the 20-min job limit.** Typecheck, lint, unit tests, build, size, audit, licences all passed; 40/41 browser tests passed, then test #20 (AC6 pixel check) stalled. Root cause: ~400k `expect()` calls in a tight loop blocked the Playwright runner (**test defect, not a product defect**). Same assertions kept, now counted in plain code and asserted once; added Playwright `globalTimeout` and a step timeout. |
+| [39630462029](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39630462029) | CI, commit `95ed734` | **PASS — all 17 steps, 1 min 43 s.** |
+
+Results of the passing run (https://github.com/Mabdelaziz/qr-pocket/actions/runs/39630462029):
+| Check | Result |
 |---|---|
-| Typecheck (strict) / lint | NOT RUN |
-| Unit tests (`tests/unit`, T-001-1..4, 2c) | NOT RUN |
-| Independent decoder round-trip: jsQR (T-001-2), ZXing (T-001-2b) incl. Arabic | NOT RUN |
-| Browser tests (`tests/e2e`: states, 320–430px, 150/200% text, keyboard, axe, CSP/privacy; T-001-5..8) | NOT RUN |
-| Production build, size gate (150 KB gzip), licence gate, `npm audit` | NOT RUN |
-| Offline / SW scope / Pages base path (Phase 4) | NOT RUN (not implemented) |
-| Physical Android UAT (incl. Arabic scan with two scanners, QR sharpness at fractional DPR) | NOT RUN |
+| `npm ci` (lockfile) | PASS |
+| TypeScript strict typecheck | PASS |
+| ESLint | PASS |
+| Unit tests (Vitest) | **80 passed, 0 failed, 0 skipped** — encode 32, surrogates 15, ZXing decode 14, layout 9, model 8, encode-failure 2 |
+| Independent decoder round trip (14 payloads incl. Arabic long/diacritics/mixed, bidi controls, emoji ZWJ, €/é, multiline, spaces) | **jsQR PASS (unit + real browser canvas pixels); ZXing PASS (all 14)** — the ECI/charset risk (ADR-014) did **not** materialise for ZXing |
+| Browser tests (Playwright, Chromium) | **41 passed, 0 failed, 0 skipped** (57.9 s): AC1–AC9 states, decode of rendered canvas, 320/360/390/430 px, long URL, 150%/200% text scale, short-viewport, Arabic `:dir(rtl)`, axe WCAG 2.0–2.2 A/AA on 7 states (0 violations), keyboard order, ≥48px targets, status/alert behaviour, no cross-origin requests, no console/CSP errors |
+| Production build (Vite 8, base `/qr-pocket/`) | PASS |
+| Bundle size (gzip) | **12.91 KB total** (JS 9.89 + CSS 1.67 + HTML 1.35) vs 150 KB budget |
+| `npm audit --omit=dev` | 0 vulnerabilities |
+| Licence check (production tree) | PASS — `qrcode-generator@2.0.4` MIT (only production dependency) |
+| Artifact | `reports-<sha>` (Playwright report, 242 KB) |
+
+What these results do **not** prove (still NOT RUN / unverified):
+- Real phones: scanning Arabic with two physical scanners (UAT U4), canvas sharpness at fractional device-pixel ratios, TalkBack, on-screen keyboard (only simulated by a short viewport).
+- Other browsers (Chromium only), and Windows high-contrast behaviour (CSS added, not tested).
+- Offline/install/service worker (Phase 4), saving/export/share (Phase 3), Pages base-path serving beyond `vite preview`.
+- jsQR/ZXing both read our output; that shows consistency with two decoders, not with every phone camera app.
 
 ## Blockers / open questions
 - Behaviour/size of `qrcode-generator` (UTF-8, Arabic, bundle) unverified until CI. `@nayuki/qr-code-generator` does **not** exist on npm (404) — ADR-002 corrected.
-- **G2 not granted:** no repository, push, or cloud CI. `package-lock.json` does not exist (cloud-generated by `.github/workflows/lockfile.yml`).
-- **Arabic/UTF-8 interoperability is unverified:** no ECI segment is emitted; ZXing may guess a different charset (ADR-014). Decide after T-001-2b and UAT U4.
-- Action SHAs in the workflows were read 2026-10-21; re-verify before the first push. Dependabot/SHA-pinning proposals still await your approval.
+- **Arabic/UTF-8 on real scanners is unverified:** no ECI segment is emitted. Both independent decoders (jsQR, ZXing) read all 14 payloads correctly in CI, but phone camera apps may differ — decide after UAT U4 (ADR-014 contingency: ECI via a different encoder).
+- Action SHAs re-verified against GitHub on 2026-10-21 (all three are still the latest releases). Repository hardening not yet applied (needs your approval): restrict Actions to GitHub-owned actions + require SHA pinning, branch protection requiring the `verify` check, Dependabot.
+- CI has run only on the PR branch; `main` has no `ci.yml` until PR #1 is merged.
+- Runner image: pinned `ubuntu-24.04` because `ubuntu-latest` began migrating to Ubuntu 26 on 2026-10-19.
 - Known small risks (S3): fractional device-pixel-ratio scaling of the QR canvas (check on phone), bidi-control payload under ZXing (triage), `@types/node` 26 vs Node 22 runtime.
 - Busy state ("Generating…" > 200 ms, mock G8) is not implemented: encoding is synchronous and expected to be fast; revisit if CI/phone measurements show otherwise.
 - (resolved 2026-10-21) `info.txt` naming corrected to QR Pocket / qr-pocket on 4 lines only.
