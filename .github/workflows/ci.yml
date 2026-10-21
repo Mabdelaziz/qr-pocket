@@ -70,6 +70,19 @@ jobs:
           path: dist
           retention-days: 1
 
+      # Pictures for docs/USER_GUIDE.md, rendered from the real build. Documentation tooling, not a gate: it runs after
+      # the Pages artifact exists and cannot block or alter what is published.
+      - run: npm run screenshots
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: user-guide-screenshots
+          path: user-guide-screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:

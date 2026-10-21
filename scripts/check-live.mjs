@@ -9,9 +9,8 @@ if (!baseUrl || !/^[0-9a-f]{40}$/.test(commit ?? '')) {
 }
 const ATTEMPTS = 12;
 const WAIT_MS = 20_000;
-let problems = [];
 for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
-  problems = await checkLive({ baseUrl, commit });
+  const problems = await checkLive({ baseUrl, commit });
   if (problems.length === 0) {
     console.log(`Live site ${baseUrl} serves commit ${commit} and is installable (attempt ${attempt}).`);
     process.exit(0);

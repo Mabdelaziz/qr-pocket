@@ -21,7 +21,8 @@
     "check:size": "node scripts/check-size.mjs",
     "check:licenses": "node scripts/check-licenses.mjs",
     "stamp": "node scripts/stamp-build.mjs",
-    "check:public": "node scripts/check-public-files.mjs"
+    "check:public": "node scripts/check-public-files.mjs",
+    "screenshots": "playwright test -c playwright.screenshots.config.ts"
   },
   "dependencies": {
     "qrcode-generator": "2.0.4"

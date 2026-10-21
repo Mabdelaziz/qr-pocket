@@ -17,9 +17,9 @@ const SECRET_PATTERNS = [
   ['Slack token', /\bxox[abprs]-[A-Za-z0-9-]{10,}\b/],
   ['private key block', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
 ];
-const LOCAL_PATH_PATTERNS = [/[A-Za-z]:\(?:Users|ClaudProjects)\/, /\/home\/(?:runner|[a-z][\w-]*)\//, /\/Users\/[A-Za-z][\w.-]*\//];
+const LOCAL_PATH_PATTERNS = [/[A-Za-z]:\\(?:Users|ClaudProjects)\\/, /\/home\/(?:runner|[a-z][\w-]*)\//, /\/Users\/[A-Za-z][\w.-]*\//];
 const EMAIL = /\b[\w.+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}\b/;
-const URL_PATTERN = /https?:\/\/[^\s"'`)<>\]+/g;
+const URL_PATTERN = /https?:\/\/[^\s"'`)<>\\]+/g;
 const FULL_SHA = /^[0-9a-f]{40}$/;
 
 /** `files`: [{ path: 'assets/x.js', data: Buffer }] with forward-slash paths relative to dist. Returns problems (empty = OK). */
