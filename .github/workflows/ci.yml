@@ -32,7 +32,10 @@ jobs:
           cache: npm
 
       - run: npm ci               # fails if lockfile is missing or out of sync (intended)
-      - run: npm run typecheck    # tsc --noEmit, strict
+      - name: 'Workflow files are valid YAML (deploy.yml cannot be parsed by GitHub before it is on main)'
+        run: python3 -c 'import sys, yaml; [print(f, sorted(map(str, yaml.safe_load(open(f))))) for f in sys.argv[1:]]' .github/workflows/*.yml
+        if: ${{ !cancelled() }}
+      - run: npm run typecheck   # tsc --noEmit, strict
         if: ${{ !cancelled() }}
       - run: npm run lint
         if: ${{ !cancelled() }}
