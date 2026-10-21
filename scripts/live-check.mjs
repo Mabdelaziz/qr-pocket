@@ -2,11 +2,11 @@
 const EXPECTED_PATH = '/qr-pocket/';
 
 /** Returns a list of problems (empty = the live site is the verified build and is installable). */
-export async function checkLive({ baseUrl, commit, fetchImpl = fetch }) {
+export async function checkLive({ baseUrl, commit, runId, fetchImpl = fetch }) {
   const problems = [];
   let base;
   try {
-    base = new URL(baseUrl);
+    base = new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`); // tolerate a missing trailing slash
   } catch {
     return [`"${baseUrl}" is not a URL`];
   }
@@ -17,7 +17,7 @@ export async function checkLive({ baseUrl, commit, fetchImpl = fetch }) {
     const url = new URL(path, base);
     url.searchParams.set('check', String(Date.now())); // bypass the host cache for this request only
     try {
-      return await fetchImpl(url, { headers: { 'Cache-Control': 'no-cache' }, redirect: 'manual' });
+      return await fetchImpl(url, { headers: { 'Cache-Control': 'no-cache' }, redirect: 'manual', signal: AbortSignal.timeout(10_000) });
     } catch (error) {
       problems.push(`${path}: request failed (${error instanceof Error ? error.message : String(error)})`);
       return undefined;
@@ -31,6 +31,8 @@ export async function checkLive({ baseUrl, commit, fetchImpl = fetch }) {
       try {
         const body = await version.json();
         if (body.commit !== commit) problems.push(`version.json: live commit ${body.commit} is not the verified commit ${commit}`);
+        // The verifying run is the deploying run, so this tells a fresh deployment from an older one of the same commit.
+        if (runId && body.run !== runId) problems.push(`version.json: live run ${body.run} is not this run ${runId}`);
       } catch {
         problems.push('version.json: not valid JSON');
       }
@@ -69,5 +71,6 @@ export async function checkLive({ baseUrl, commit, fetchImpl = fetch }) {
 
   const page = await get('');
   if (page && !page.ok) problems.push(`start page: HTTP ${page.status}`);
+  else if (page && !(await page.text()).includes('<title>QR Pocket')) problems.push('start page: does not look like QR Pocket');
   return problems;
 }

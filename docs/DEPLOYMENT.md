@@ -13,16 +13,16 @@ Expected public address after authorisation: **https://mabdelaziz.github.io/qr-p
 | `guard` | contents: read | Fails at once unless the run is on `refs/heads/main`. |
 | `verify` | contents: read | Calls `ci.yml`, the same workflow every pull request runs: typecheck, lint, 200+ unit tests, two builds, stamp, public-file scan, size gate, audits, licences, all browser tests (Chromium, Firefox, WebKit). Only if all pass, it packages `dist/` as the Pages artifact. |
 | `deploy` | **pages: write, id-token: write** (the only job with write access) | Environment `github-pages`. `configure-pages`, then `deploy-pages` publishes the artifact the verified run produced. Nothing is rebuilt. |
-| `check-live` | contents: read | Fetches the live site (retrying for up to 4 minutes) and requires: HTTPS, `/qr-pocket/` path, `version.json` commit = the commit that was verified, manifest scope/start/id `/qr-pocket/`, standalone display, the 512 px icon, `sw.js`, and the start page. |
+| `check-live` | contents: read | Fetches the live site (retrying for about 4 minutes (each request has a 10 s timeout)) and requires: HTTPS, `/qr-pocket/` path, `version.json` commit and run id = the verified commit and this run (an older deployment of the same commit does not pass), the start page is QR Pocket, manifest scope/start/id `/qr-pocket/`, standalone display, the 512 px icon, `sw.js`, and the start page. |
 
-Safety properties (each enforced by `tests/unit/workflows.test.ts`):
+Safety properties (the workflow-file ones are checked statically by `tests/unit/workflows.test.ts`, which reads the text and does not run the workflow):
 - one trigger (`workflow_dispatch`), no inputs, so there is nothing to choose at dispatch time;
-- a feature branch cannot be deployed: `guard` fails, and `github-pages` should also be restricted to `main` (section 2);
-- `concurrency: pages`, `cancel-in-progress: false`: deployments queue and never overlap;
+- a feature branch cannot be deployed: `guard` and an `if` on the deploy job refuse any ref but `main`. **These are conveniences, not the real barrier**: a dispatch uses the workflow file of the branch it is run on, so a branch that edits the workflow could remove them. The real barrier is the **`github-pages` environment branch policy restricted to `main` (section 2, step 2), mandatory before the first dispatch**; GitHub enforces it, not the workflow file. Only the repository owner can push branches or dispatch workflows;
+- `concurrency: pages`, `cancel-in-progress: false`: deployments never overlap (one may wait; GitHub keeps only one waiting run per group, so a third dispatch replaces the waiting second);
 - workflow-level permissions are `contents: read`; no `pull_request_target`, no secrets, no third-party actions; every action is pinned to a full commit SHA;
 - the shell steps put no event data into commands.
 
-Run on the same `main` commit that has a green CI check. Pull requests can never deploy.
+Run on the same `main` commit that has a green CI check. Pull requests can never deploy. **Before the first dispatch, confirm the policy:** `gh api repos/Mabdelaziz/qr-pocket/environments/github-pages` must show `custom_branch_policies: true`, and `.../deployment-branch-policies` must list only `main`.
 
 ## 2. Enabling GitHub Pages (needs your authorisation; *untested*)
 

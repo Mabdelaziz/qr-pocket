@@ -41,6 +41,7 @@ jobs:
   deploy:
     name: Publish to GitHub Pages
     needs: [guard, verify]
+    if: ${{ github.ref == 'refs/heads/main' }}   # second check; the environment branch policy is the real control (docs/DEPLOYMENT.md)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -71,4 +72,4 @@ jobs:
       - name: 'Live site serves the verified commit'
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
-        run: node scripts/check-live.mjs "$PAGE_URL" "$GITHUB_SHA"
+        run: node scripts/check-live.mjs "$PAGE_URL" "$GITHUB_SHA" "$GITHUB_RUN_ID"

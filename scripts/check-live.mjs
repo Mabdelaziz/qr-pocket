@@ -1,8 +1,8 @@
 // Post-deployment check (read-only job of deploy.yml): the live site must be the verified commit.
-// Usage: node scripts/check-live.mjs <site url> <commit>. GitHub Pages can take a few minutes to serve new files, so retry.
+// Usage: node scripts/check-live.mjs <site url> <commit> [run id]. GitHub Pages can take a few minutes to serve new files, so retry.
 import { checkLive } from './live-check.mjs';
 
-const [baseUrl, commit] = process.argv.slice(2);
+const [baseUrl, commit, runId] = process.argv.slice(2);
 if (!baseUrl || !/^[0-9a-f]{40}$/.test(commit ?? '')) {
   console.error('Usage: node scripts/check-live.mjs <site url> <40-character commit id>');
   process.exit(2);
@@ -10,7 +10,7 @@ if (!baseUrl || !/^[0-9a-f]{40}$/.test(commit ?? '')) {
 const ATTEMPTS = 12;
 const WAIT_MS = 20_000;
 for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
-  const problems = await checkLive({ baseUrl, commit });
+  const problems = await checkLive({ baseUrl, commit, runId });
   if (problems.length === 0) {
     console.log(`Live site ${baseUrl} serves commit ${commit} and is installable (attempt ${attempt}).`);
     process.exit(0);

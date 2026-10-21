@@ -65,6 +65,8 @@ describe('SPEC-005 AC6: public-file scan', () => {
 
   it('allows only the exact documentation link found in Workbox, not other links on the same host', () => {
     expect(scanFiles([...good, file('workbox-1.js', 'see https://bit.ly/wb-precache for details')])).toEqual([]);
+    expect(scanFiles([...good, file('workbox-1.js', 'x https://bit.ly/wb-precacheX')])).toEqual(['unexpected absolute URL workbox-1.js: https://bit.ly/wb-precacheX']);
+    expect(scanFiles([...good, file('workbox-1.js', 'x HTTPS://tracker.example/a')])).toHaveLength(1);
     expect(scanFiles([...good, file('workbox-1.js', 'fetch("https://bit.ly/other")')])).toEqual(['unexpected absolute URL workbox-1.js: https://bit.ly/other']);
   });
 
@@ -113,8 +115,8 @@ describe('SPEC-005 AC7: live-site check', () => {
       return new Response(body, { status: entry.status ?? 200, headers: { 'content-type': entry.type ?? 'application/json' } });
     }) as typeof fetch;
   const healthy = (): Site => ({
-    '': { type: 'text/html', body: '<html></html>' },
-    'version.json': { body: { app: 'qr-pocket', commit: SHA } },
+    '': { type: 'text/html', body: '<html><head><title>QR Pocket</title></head></html>' },
+    'version.json': { body: { app: 'qr-pocket', commit: SHA, run: '99' } },
     'manifest.webmanifest': { type: 'application/manifest+json', body: manifest },
     'sw.js': { type: 'text/javascript', body: 'self.skipWaiting' },
     'icons/icon-512.png': { type: 'image/png', body: 'png' },
@@ -122,6 +124,15 @@ describe('SPEC-005 AC7: live-site check', () => {
 
   it('passes for the verified commit with a correct manifest, worker and icon', async () => {
     expect(await checkLive({ baseUrl: BASE, commit: SHA, fetchImpl: siteFetch(healthy()) })).toEqual([]);
+  });
+
+  it('rejects an older deployment of the same commit and a foreign start page; tolerates a missing trailing slash', async () => {
+    expect((await checkLive({ baseUrl: BASE, commit: SHA, runId: '100', fetchImpl: siteFetch(healthy()) })).join('\n')).toMatch(/live run 99 is not this run 100/);
+    expect(await checkLive({ baseUrl: BASE, commit: SHA, runId: '99', fetchImpl: siteFetch(healthy()) })).toEqual([]);
+    expect(await checkLive({ baseUrl: BASE.slice(0, -1), commit: SHA, fetchImpl: siteFetch(healthy()) })).toEqual([]);
+    const foreign = healthy();
+    foreign[''] = { type: 'text/html', body: '<title>Other</title>' };
+    expect((await checkLive({ baseUrl: BASE, commit: SHA, fetchImpl: siteFetch(foreign) })).join('\n')).toMatch(/does not look like QR Pocket/);
   });
 
   it('fails for a different commit (stale or wrong deployment)', async () => {

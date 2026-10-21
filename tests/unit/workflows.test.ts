@@ -101,6 +101,10 @@ describe('SPEC-005 AC3: least privilege', () => {
     }
   });
 
+  it('the deploy job itself also requires main', () => {
+    expect(jobs(deploy)['deploy']).toContain("if: ${{ github.ref == 'refs/heads/main' }}");
+  });
+
   it('deploys through the protected github-pages environment, one deployment at a time', () => {
     expect(jobs(deploy)['deploy']).toMatch(/environment:\s*\n\s+name: github-pages/);
     const concurrency = topLevel(deploy, 'concurrency');
@@ -172,7 +176,7 @@ describe('SPEC-005 AC1/AC5: the deployed bytes are the verified bytes', () => {
   });
 
   it('the post-deployment check compares the live commit with the dispatched commit', () => {
-    expect(jobs(deploy)['check-live']).toContain('"$PAGE_URL" "$GITHUB_SHA"');
+    expect(jobs(deploy)['check-live']).toContain('"$PAGE_URL" "$GITHUB_SHA" "$GITHUB_RUN_ID"');
   });
 });
 

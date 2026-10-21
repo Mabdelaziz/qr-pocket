@@ -25,7 +25,7 @@ const SECRET_PATTERNS = [
 ];
 const LOCAL_PATH_PATTERNS = [/[A-Za-z]:\\(?:Users|ClaudProjects)\\/, /\/home\/(?:runner|[a-z][\w-]*)\//, /\/Users\/[A-Za-z][\w.-]*\//];
 const EMAIL = /\b[\w.+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}\b/;
-const URL_PATTERN = /https?:\/\/[^\s"'`)<>\\]+/g;
+const URL_PATTERN = /(?:https?|wss?|ftp):\/\/[^\s"'`)<>\\]+/gi;
 const FULL_SHA = /^[0-9a-f]{40}$/;
 
 /** `files`: [{ path: 'assets/x.js', data: Buffer }] with forward-slash paths relative to dist. Returns problems (empty = OK). */
@@ -45,7 +45,7 @@ export function scanFiles(files, { expectedCommit, requireStamp = true } = {}) {
     for (const pattern of LOCAL_PATH_PATTERNS) if (pattern.test(text)) problems.push(`${path}: contains a local file path (${pattern})`);
     if (EMAIL.test(text)) problems.push(`${path}: contains an e-mail address`);
     for (const url of text.match(URL_PATTERN) ?? []) {
-      if (!URL_ALLOW_LIST.some((prefix) => url.startsWith(prefix))) urls.add(`${path}: ${url}`);
+      if (!URL_ALLOW_LIST.some((entry) => (entry.endsWith('/') ? url.startsWith(entry) : url === entry))) urls.add(`${path}: ${url}`);
     }
   }
   for (const entry of [...urls].sort()) problems.push(`unexpected absolute URL ${entry}`);
