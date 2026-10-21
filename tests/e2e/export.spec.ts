@@ -6,7 +6,6 @@ import { expect, test, type Download, type Page } from '@playwright/test';
 import { CASES } from '../unit/helpers/cases';
 import { decodeWithJsQr, decodeWithZxing } from '../unit/helpers/decoders';
 import {
-  card,
   expectNoHorizontalOverflow,
   input,
   installFaultInjector,

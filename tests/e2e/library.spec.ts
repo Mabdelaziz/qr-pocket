@@ -446,10 +446,15 @@ test.describe('SPEC-002 AC10/AC14/AC15: responsive, accessible, private', () => 
     await expect(deleteButton(page, 'keyboard item')).toBeFocused(); // Share is absent here: unsupported in desktop Chromium
     await page.keyboard.press('Enter');
     await expect(deleteDialog(page)).toBeVisible();
-    // Focus stays inside the modal dialog however many times Tab is pressed (the exact wrap target is browser-defined).
+    // The modal traps focus: however many times Tab is pressed, focus is inside the dialog or has left the page for
+    // the browser's own UI (document.body) - it NEVER lands on the inert page content behind the dialog.
     for (let i = 0; i < 4; i++) {
       await page.keyboard.press('Tab');
-      expect(await page.evaluate(() => document.activeElement?.closest('dialog[open]') !== null)).toBe(true);
+      const trapped = await page.evaluate(() => {
+        const active = document.activeElement;
+        return active === null || active === document.body || active.closest('dialog[open]') !== null;
+      });
+      expect(trapped).toBe(true);
     }
     await page.keyboard.press('Escape');
     await expect(deleteButton(page, 'keyboard item')).toBeFocused();
