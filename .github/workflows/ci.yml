@@ -45,7 +45,7 @@ jobs:
         if: ${{ !cancelled() }}
       - run: npm audit --omit=dev --audit-level=high
         if: ${{ !cancelled() }}
-      - name: npm audit (all dependencies, informational: build tooling only)
+      - name: 'npm audit, all dependencies (informational, build tooling only)'
         run: npm audit --audit-level=high || true
         if: ${{ !cancelled() }}
       - run: npm run check:licenses
