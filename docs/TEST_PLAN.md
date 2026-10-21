@@ -1,6 +1,6 @@
 # QR Pocket — Test Plan
 
-Status: DRAFT (Phase 0). **Every test below is NOT RUN.** Nothing executes locally; "local testing" = source inspection only (diff review, type/logic reading, a11y/security read-through), recorded as *inspection*, never as a pass.
+Status: DRAFT (Phase 0). **T-001-* (SPEC-001) PASSED in cloud CI run 39630462029 on 2026-10-21 (80 unit + 41 browser tests); every other test below is still NOT RUN.** Nothing executes locally; "local testing" = source inspection only (diff review, type/logic reading, a11y/security read-through), recorded as *inspection*, never as a pass.
 
 ## 1. Environments
 | Where | What runs |

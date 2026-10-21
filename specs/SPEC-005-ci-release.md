@@ -43,4 +43,4 @@ Least privilege per job; no secrets; no `pull_request_target`; third-party actio
 Verification is the workflows' own runs: T-005-1, T-005-2. Manual: checklist walkthrough.
 
 ## Completion evidence
-None. Workflows not yet written; nothing run.
+Partial (2026-10-21): `lockfile.yml` ([run 39627052940](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39627052940), PASS) and `ci.yml` ([run 39630462029](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39630462029), PASS, 17 steps, 1m43s) have run on GitHub-hosted runners; AC1 and AC5 (least-privilege, no secrets, no pull_request_target) satisfied by inspection + run. Not yet done: `deploy.yml` (AC3), rollback test (AC6), subpath serving under Pages (AC4 beyond `vite preview`), proof that a failing test blocks deployment (AC2).

@@ -1,0 +1,74 @@
+# QR Pocket CI — SPEC-005 (ADR-008, ADR-011). INERT until the repository is pushed (needs owner G2).
+# First executed 2026-10-21 via the phase-2-core pull request; results in docs/PROGRESS.md.
+# Action pins (GitHub API lookup 2026-10-21): checkout v7.0.1, setup-node v7.1.0, upload-artifact v7.0.2.
+# RE-VERIFY the tag -> SHA mapping immediately before the first push.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04   # pinned: ubuntu-latest migrates to Ubuntu 26 from 2026-10-19
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22        # ADR-011: satisfies vite 8 / vitest 5 / axe engines
+          cache: npm
+
+      - run: npm ci               # fails if lockfile is missing or out of sync (intended)
+      - run: npm run typecheck    # tsc --noEmit, strict
+        if: ${{ !cancelled() }}
+      - run: npm run lint
+        if: ${{ !cancelled() }}
+      - run: npm test             # vitest run (SPEC-001..003 unit tests)
+        if: ${{ !cancelled() }}
+      - run: npm run build        # vite build, base /qr-pocket/
+        if: ${{ !cancelled() }}
+      - run: npm run check:size   # fails if initial JS+CSS gzip > 150 KB (target; measured, reported)
+        if: ${{ !cancelled() }}
+      - run: npm audit --omit=dev --audit-level=high
+        if: ${{ !cancelled() }}
+      - run: npm run check:licenses
+        if: ${{ !cancelled() }}
+
+      - run: npx playwright install --with-deps chromium
+        if: ${{ !cancelled() }}
+      - run: npm run test:e2e     # vite preview --base /qr-pocket/, axe-core, offline, subpath
+        if: ${{ !cancelled() }}
+        timeout-minutes: 12
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: reports-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+            size-report.txt
+          retention-days: 14
+
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "### QR Pocket CI"
+            echo "- Commit: ${{ github.sha }}"
+            echo "- Node: $(node -v)"
+            if [ -f size-report.txt ]; then echo '- Bundle size:'; echo '```'; cat size-report.txt; echo '```'; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+# Not included on purpose: Pages deploy (separate manual workflow, later), secrets, pull_request_target.

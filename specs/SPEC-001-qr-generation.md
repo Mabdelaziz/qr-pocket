@@ -1,6 +1,6 @@
 # SPEC-001 — QR generation and preview
 
-Status: IMPLEMENTED (NOT VERIFIED) — source and tests written 2026-10-21; nothing has been executed (cloud CI only). Owner approved G1b and Phase 2 on 2026-10-21.
+Status: VERIFIED by cloud CI 2026-10-21 ([run 39630462029](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39630462029), commit `95ed734`, Chromium + Node 22 on ubuntu-24.04). Not yet DONE: physical-phone UAT (U3–U6, U14) and owner approval to continue are outstanding.
 
 ## Goal
 Turn user text into a scanner-compatible QR code, locally, and show a crisp preview with clear validation.
@@ -65,4 +65,4 @@ Automated (CI, NOT RUN): T-001-1..8 — `tests/unit/{encode,layout,model,decode-
 Manual: UAT U3–U6 on phone with two scanners.
 
 ## Completion evidence
-None yet — no test, lint, typecheck or build has run. A static independent review (2026-10-21, source reading only) led to fixes for: a Playwright strict-mode selector clash, stale byte counts in alert text, double screen-reader announcements, restore-safe initial state, forced-colors focus outline, weak jsQR scale at capacity boundaries, lone-surrogate handling. Move to VERIFIED only with a green CI run recorded in docs/PROGRESS.md.
+CI run 39630462029 (PASS): typecheck, ESLint, 80/80 unit tests (jsQR and ZXing both decode all 14 payload cases byte-exact), 41/41 Playwright tests (AC1–AC12 covered incl. axe WCAG A/AA on 7 states, 150%/200% text, 320–430 px, keyboard, CSP/privacy), build 12.91 KB gzip, 0 vulnerabilities. An earlier run ([39627260313](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39627260313)) was cancelled by a test defect (AC6 pixel loop), fixed in `95ed734`. Not covered by CI: real phone scanners/TalkBack/on-screen keyboard, non-Chromium browsers. A static independent review (2026-10-21, source reading only) led to fixes for: a Playwright strict-mode selector clash, stale byte counts in alert text, double screen-reader announcements, restore-safe initial state, forced-colors focus outline, weak jsQR scale at capacity boundaries, lone-surrogate handling. Recorded in docs/PROGRESS.md and docs/TRACEABILITY.md.

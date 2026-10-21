@@ -1,6 +1,6 @@
 # QR Pocket — First cloud CI run (setup and exact steps)
 
-Status: PREPARED 2026-10-21, **NOT DONE**. No remote repository exists, nothing has been pushed, Pages is not enabled. Every step marked 👤 needs your explicit **G2** authorisation (I will not run them on my own).
+Status: **EXECUTED 2026-10-21 under your G2 authorisation** (repo https://github.com/Mabdelaziz/qr-pocket, public; Pages disabled; no deployment). Results: docs/PROGRESS.md. Differences from the plan below: `ci.yml` was held back from the first commit and added with the lockfile in PR #1, runners are pinned to `ubuntu-24.04`, and the lockfile was verified offline before being committed.
 
 ## What is ready in the folder
 - App scaffold + SPEC-001 source: `package.json`, `.npmrc` (`ignore-scripts=true`, exact pins), `tsconfig.json`, `vite.config.ts` (`base: '/qr-pocket/'`), `vitest.config.ts`, `playwright.config.ts`, `eslint.config.js`, `index.html`, `src/`, `tests/`, `scripts/check-size.mjs`, `scripts/check-licenses.mjs`.
