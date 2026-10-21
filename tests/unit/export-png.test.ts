@@ -99,7 +99,9 @@ describe('SPEC-003 AC1/AC2: the rendered export', () => {
   });
 
   it('is deterministic', () => {
-    expect(renderExportRgba(matrix).data).toEqual(image.data);
+    const again = renderExportRgba(matrix).data;
+    // Compare raw bytes: a deep element-by-element comparison of 4 million values took ~14 s in CI.
+    expect(Buffer.from(again.buffer, again.byteOffset, again.byteLength).equals(Buffer.from(image.data.buffer, image.data.byteOffset, image.data.byteLength))).toBe(true);
   });
 });
 

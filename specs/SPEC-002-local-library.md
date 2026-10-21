@@ -1,6 +1,6 @@
 # SPEC-002 — Local library (save, list, open, rename, delete)
 
-Status: IN PROGRESS (Phase 3, branch `phase-3-library-export`) — refined 2026-10-21 per owner Phase 3 authorisation.
+Status: VERIFIED by cloud CI 2026-10-21 ([run 39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265), commit `421ab72`, PR #3; Chromium on ubuntu-24.04). Not yet DONE: physical-phone UAT (U7, U11, U14), other browsers, and owner approval are outstanding.
 
 ## Goal
 Persist QR payloads (never images) in IndexedDB and let the user manage them safely, while generation and export keep working if storage is unavailable.
@@ -75,4 +75,4 @@ All user text is rendered with `textContent`/DOM APIs. Names are prefixed `qr-po
 Automated (CI): `tests/unit/store.test.ts`, `titles.test.ts`, `saveState.test.ts`, `savedModel.test.ts` (fake-indexeddb, injected faults), `tests/e2e/library.spec.ts` (persistence, Unicode, duplicates, resets, dialogs, faults, responsive, axe, keyboard, privacy). Manual: UAT U7, U11, U14.
 
 ## Completion evidence
-Pending first CI run on `phase-3-library-export`.
+[Run 39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265) PASS: unit store 32 + titles 7 + saveState 4 + savedModel 5 tests (real IndexedDB semantics via fake-indexeddb, injected faults, Unicode/Arabic byte-exact, add-only, ordering, persistence); 27 library browser tests (persistence + raw database read, rapid-duplicate save → 1 record, Save-state resets, delete resets, Open (incl. canvas size), rename/delete dialogs with focus, injected faults on the REAL IndexedDB prototypes (open/add/put/delete/getAll), 320–430px and 150/200% text, axe on list/empty/error/both dialogs with 0 violations, keyboard, privacy). AC13 (loading state) is covered by the view-model unit test, not by a browser test (the skeleton is too short-lived to assert reliably). Bugs found and fixed on the way: Open-from-Saved tiny QR, double `abort()`, Esc during a write, `indexedDB` access throwing at load. See docs/PROGRESS.md.

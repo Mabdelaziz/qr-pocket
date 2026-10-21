@@ -1,6 +1,6 @@
 # SPEC-003 — PNG export and share
 
-Status: IN PROGRESS (Phase 3, branch `phase-3-library-export`) — refined 2026-10-21 per owner Phase 3 authorisation.
+Status: VERIFIED by cloud CI 2026-10-21 ([run 39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265), commit `421ab72`, PR #3; Chromium on ubuntu-24.04). Not yet DONE: physical-phone UAT (U9, U10), real Web Share targets and other browsers are outstanding.
 
 ## Goal
 Produce a 1024×1024 PNG on demand from a payload (never from stored images) and let the user download or share it.
@@ -64,4 +64,4 @@ No network access; the file never leaves the device except through the user's ch
 Automated (CI): `tests/unit/export-png.test.ts`, `filename.test.ts`, `share.test.ts`; `tests/e2e/export.spec.ts` (download bytes parsed and decoded in Node with a minimal PNG decoder, share stubs, object-URL tracking, network log, responsive/axe). Manual: UAT U9, U10 (Downloads location; Photos visibility not guaranteed; real share targets).
 
 ## Completion evidence
-Pending first CI run on `phase-3-library-export`.
+[Run 39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265) PASS: unit export-png 39 (layout for versions 1–40, exact pixels, symmetric margins, jsQR + ZXing on 14 payloads, 2,953 B at Low and 2,331 B at Medium, and every QR version 1–40 filled to capacity decoded by ZXing), filename 6, share 7; 23 export browser tests (real downloaded PNG bytes parsed by an independent PNG reader: 1024×1024, only black/white, symmetric margins ≥ 4 modules, even integer scale, decoded by jsQR and ZXing for 6 payload types incl. Arabic/emoji/bidi, a version-40 payload at 4 px/module; Arabic and sanitised filenames; object URLs revoked and single-shot downloads; Share hidden + explanation when unsupported; stubbed Web Share sends only a 1024×1024 PNG file; AbortError silent, other errors shown with Download still working; share on saved cards; no request contains the payload; axe 0 violations; 320–430px and 150/200% text). **Finding:** jsQR cannot read QR version 23 (ZXing reads it and all other versions exactly). **Finding:** intermittent `toBlob` stalls on the GPU-less runner, fixed with CPU-backed canvases plus a 15 s watchdog.
