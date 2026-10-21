@@ -14,7 +14,7 @@ export function drawQr(canvas: HTMLCanvasElement, matrix: QrMatrix, cssPx: numbe
   canvas.style.width = `${layout.pixels / ratio}px`;
   canvas.style.height = `${layout.pixels / ratio}px`;
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true }); // static, read back by tests/export paths: keep it in CPU memory
   if (!ctx) throw new Error('Canvas 2D is not available');
   ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = '#ffffff';

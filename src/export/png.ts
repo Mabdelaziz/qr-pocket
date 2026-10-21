@@ -49,7 +49,9 @@ export function renderPngBlob(matrix: QrMatrix, size: number = EXPORT_SIZE): Pro
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  // willReadFrequently keeps the bitmap in CPU memory: toBlob then needs no GPU readback, which can stall on
+  // GPU-less or busy machines (observed intermittently in CI) and is faster for a one-shot export anyway.
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return Promise.reject(new Error('Canvas 2D is not available'));
   // Copy into a plain ArrayBuffer-backed array: ImageData requires one.
   ctx.putImageData(new ImageData(new Uint8ClampedArray(image.data), size, size), 0, 0);
