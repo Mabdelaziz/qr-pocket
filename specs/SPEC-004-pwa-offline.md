@@ -1,6 +1,6 @@
 # SPEC-004 — PWA install and offline
 
-Status: IN PROGRESS (Phase 4, branch `phase-4-pwa`) — refined 2026-10-21 per owner Phase 4 authorisation.
+Status: VERIFIED by cloud CI 2026-10-21 ([run 39673943074](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39673943074), commit `74eedb6`, PR #4; Chromium, plus Firefox and WebKit smoke subset, ubuntu-24.04). Not yet DONE: physical-phone UAT (U2, U8, U13; see docs/ANDROID_TESTING.md), real install prompt, real hosting headers and owner approval are outstanding.
 
 ## Goal
 An installable app that works offline after its first load, with user-controlled updates, a respectful install prompt, and a documented way to recover from a bad service worker — all under `/qr-pocket/` and without caching any user data.
@@ -35,7 +35,7 @@ Header offline chip; inline notice bars under the header (offline, update availa
 - Edge: opening `/qr-pocket` without the slash is redirected by the host (not available offline); new tabs offline; install prompt event arriving before the app finished loading.
 
 ## Security / privacy / accessibility
-Only static build output is cached; no payload, title or IndexedDB record ever enters Cache Storage (tested by URL and body). No third-party scripts, fonts or CDNs. Notices: one announcement channel per event (polite status region; none duplicated by an alert). Bars never cover navigation or primary actions; targets ≥ 48px; rem-based text (150%/200%); no horizontal overflow at 320px.
+Only static build output is cached; no payload, title or IndexedDB record ever enters Cache Storage (tested by URL and body). No third-party scripts, fonts or CDNs. Notices: one announcement channel per event (polite status region; none duplicated by an alert). The install prompt is deliberately not announced: it is a labelled group at the top of the page. Bars never cover navigation or primary actions; targets ≥ 48px; rem-based text (150%/200%); no horizontal overflow at 320px.
 
 ## Acceptance criteria
 - AC1 Given the production build, then the manifest has the fields above, every listed icon exists with the exact size, the maskable icon keeps all white artwork inside the safe circle, and the "any" icon has transparent rounded corners.
@@ -46,7 +46,7 @@ Only static build output is cached; no payload, title or IndexedDB record ever e
 - AC6 Given Reload is pressed, then the page reloads once into the new build, saved records are intact, and only the new build's precache remains.
 - AC7 Given **Later** is pressed, then the bar disappears, nothing reloads, and the current build keeps running.
 - AC8 Given any use (typing, saving, exporting) online or offline, then no Cache Storage entry URL or body contains the payload or title, and the caches contain only build assets.
-- AC9 Given offline/online transitions and first install, then the chip/bars appear and disappear correctly and polite announcements are made once ("Ready to work offline." only once per browser profile).
+- AC9 Given offline/online transitions and first install, then the chip/bars appear and disappear correctly and polite announcements are made once ("Ready to work offline." only once per browser profile, and only while the app's cache exists); the update bar is announced politely; the install prompt is not announced.
 - AC10 Given the install-prompt policy, then it is not shown on load, appears only after a QR has been shown, respects "Not now" for 30 days and ignored prompts for 7 days, is hidden after installation and in standalone mode, calls the browser's native prompt on "Install app", and never appears when the browser fires no event.
 - AC11 Given the notices and prompt, then axe finds no WCAG 2.x A/AA violations, there is no horizontal overflow at 320px and at 150%/200% text, and targets are ≥ 48px.
 - AC12 Given the kill-switch worker is deployed over a working one, then after an update check the caches named `qr-pocket*` are deleted, the worker unregisters, IndexedDB records are untouched, and the app still loads from the network.
@@ -58,4 +58,4 @@ Only static build output is cached; no payload, title or IndexedDB record ever e
 Automated (CI): `tests/unit/icons.test.ts`, `tests/unit/installPolicy.test.ts`; `tests/e2e/pwa.spec.ts` (manifest, icons, scope, caches, offline flows, notices, install prompt, a11y, responsive), `tests/e2e/update.spec.ts` (two-version update with a mutable static server, Later, no forced reload, IndexedDB preserved, cache cleanup, kill-switch recovery), `tests/e2e/cross-browser.spec.ts` (`@cross`, runs on Chromium, Firefox and WebKit). Manual: UAT U2 (install), U8 (airplane mode), U13 (update) — see `docs/ANDROID_TESTING.md`.
 
 ## Completion evidence
-Pending first CI run on `phase-4-pwa`.
+[Run 39673943074](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39673943074) PASS: unit 210 (icons 11, install policy 19); browser 131 passed, 0 failed, 0 flaky, 0 skipped — Chromium 121 (manifest/icons/CSP 4, service worker + offline + caches + notices 5, install prompt 13, update/recovery 3, cross-browser smoke 5, plus the unchanged Phase 1-3 specs), Firefox 5, WebKit 5 (`@cross`: generate+decode, persistence+dialogs, PNG download, manifest/icons, offline reload). Update tests: the update waits for the user (no reload, typing and an open dialog untouched, build id unchanged), Reload moves to the new build with exactly one reload, saved codes intact, only the new precache remains, new build works offline; Later keeps the old build and the offer returns next visit; the kill-switch worker deletes the caches, unregisters and leaves IndexedDB intact. Initial load 23.76 KB gzip; service worker + Workbox runtime 6.03 KB gzip (separate). Findings fixed on the way: notice bars/header overflowed at 200% text; install text announcement was overwritten; stale accessible name and lost focus on notice bars; offline-ready could be claimed after a recovery worker; a test helper that did not truly wait for the worker. Not covered by CI: real install prompt and standalone display, physical phones, real GitHub Pages headers, Safari/Firefox release builds (Playwright builds used).

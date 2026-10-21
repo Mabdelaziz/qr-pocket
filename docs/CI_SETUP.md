@@ -36,7 +36,7 @@ Status: **EXECUTED 2026-10-21 under your G2 authorisation** (repo https://github
 This is the first execution of everything. Expect some failures: type or lint issues, selector or timing problems in browser tests, an axe finding, a bundle-size number, and — the one that matters for the product — whether the **ZXing** decoder reads UTF-8/Arabic payloads that have no ECI marker (T-001-2b). Any ZXing mismatch is a real interoperability finding to decide on (ADR-014), not just a test to silence.
 
 ## What CI runs (`.github/workflows/ci.yml`)
-Node 22 → `npm ci` → typecheck → lint → Vitest → `vite build` → size gate (150 KB gzip target, measured) → `npm audit --omit=dev` → licence check → Playwright (Chromium, axe, 320–430 px, text scaling, CSP/privacy) → artifacts. No deploy. Pages deployment (`deploy.yml`, manual) is Phase 5 and needs G3.
+Node 22 → `npm ci` → typecheck → lint → Vitest → `npm run build` (icons + manifest + service worker) → `npm run build:v2` (second build for the update tests) → size gate (initial load ≤ 150 KB gzip; worker reported separately) → `npm audit --omit=dev` and an informational full audit → licence check → Playwright (Chromium; Firefox and WebKit smoke; axe, 320–430 px, text scaling, CSP/privacy, offline, updates) → artifacts (reports, icons, manifest, worker). No deploy. Pages deployment (`deploy.yml`, manual) is Phase 5 and needs G3.
 
 ## Risks
 - Pinned action SHAs/tags could be stale (run fails loudly; safe) — re-verified before the first push.

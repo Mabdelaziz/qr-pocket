@@ -1,7 +1,35 @@
 # QR Pocket — Progress
 
-**Current milestone:** Phase 3 (SPEC-002 local library + SPEC-003 PNG export/share) — **cloud CI green** ([run 39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265), commit `421ab72`, [PR #3](https://github.com/Mabdelaziz/qr-pocket/pull/3), 2026-10-21). **Awaiting your approval** to merge PR #3 and to start Phase 4. Gates: G1 ✔, G1b ✔, G2 ✔ (incl. merge of PR #1, repository hardening, `main` = verified baseline `915fd85`/`b837e53`).
-**Next small task (after your approval):** merge PR #3, then Phase 4 (SPEC-004 PWA/offline) — see the Phase 4 plan in `docs/PHASE_3_REPORT.md`.
+**Current milestone:** Phase 4 (SPEC-004 PWA install and offline) — **cloud CI green** ([run 39673943074](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39673943074), commit `74eedb6`, [PR #4](https://github.com/Mabdelaziz/qr-pocket/pull/4), 2026-10-21). **Awaiting your approval**; PR #4 is NOT merged. Gates: G1 ✔, G1b ✔, G2 ✔; Phase 3 merged (`main` verified at `c59b1d6`, [CI run 39669823951](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39669823951)).
+**Next small task (after your approval):** merge PR #4; then Phase 5 (SPEC-005: CI/release — manual, gated deploy workflow; Pages still needs separate authorisation) and the physical-phone UAT instructions in `docs/ANDROID_TESTING.md`.
+
+## Phase 4 evidence (actual CI runs)
+Branch `phase-4-pwa` → [PR #4](https://github.com/Mabdelaziz/qr-pocket/pull/4); `ubuntu-24.04`, Node 22; lockfile regenerated in the cloud ([run 39671604964](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39671604964): 501 packages, +334 build tooling, no existing package changed, sha512 and registry-only, no install scripts among additions, production tree unchanged).
+
+| Run | Commit | Result |
+|---|---|---|
+| [39671760632](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39671760632) | `55b3bd9` | **FAIL — no job started:** my CI edit left a colon-space in an unquoted YAML step name. |
+| [39671884687](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39671884687) | `f18f2f5` | typecheck, lint, unit **210/210**, both builds, size, audits, licences PASS; browser 123 passed / 8 failed: overflow at 200% text, install text overwritten in the status region, a test locator clash (3 browsers), service-worker tests racing. |
+| [39673182340](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39673182340) | `eaac6c0` | browser 130 passed / 1 failed / 1 flaky; a temporary diagnostic showed my wait helper returned while the worker was still *installing* (offline reload works once the worker is active). |
+| [39673943074](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39673943074) | `74eedb6` | **PASS — all steps** (4 min 25 s). |
+
+Results of the passing run:
+| Check | Result |
+|---|---|
+| `npm ci`, typecheck, ESLint | PASS |
+| Unit tests (Vitest) | **210 passed, 0 failed, 0 skipped** (15 files; new: icons 11, install policy 19) |
+| Browser tests (Playwright) | **131 passed, 0 failed, 0 flaky, 0 skipped** (2.8 min): **Chromium 121**, **Firefox 5**, **WebKit 5**. Chromium by file: generate 41, library 27, export 23, pwa 22 (manifest/icons/CSP, scope/caches, offline flows, no payload in caches, notices, install prompt incl. 320–430px and 150/200% text), update 3 (two-deployment update, Later, kill-switch recovery), cross-browser 5 |
+| Builds | `npm run build` and `npm run build:v2` PASS (icons generated, manifest + service worker emitted) |
+| Bundle (gzip) | **Initial load 23.76 KB** (JS 18.33 + CSS 2.83 + HTML 2.60) vs 150 KB budget; **service worker + Workbox runtime 6.03 KB** (separate download); whole precache 99.11 KB uncompressed (JS, CSS, HTML, 5 icons, manifest, worker) |
+| `npm audit` | production 0 vulnerabilities; all dependencies (informational) 0 vulnerabilities; one dev-only deprecation warning (`glob@11.1.0`, via Workbox) — Dependabot tracks it |
+| Licence check (production) | PASS — only `qrcode-generator` (MIT) |
+
+Findings and fixes during the loop (root-caused, no test weakened):
+- **Real defects fixed:** notice bars and the header overflowed at 320px/200% text; the install text announcement was overwritten by "QR code ready." (decision: do not announce the install prompt); notice accessible names could go stale; focus was lost when a focused bar closed; "Ready to work offline" could be claimed after a recovery worker deleted the cache; a blocked registration resolved to `undefined`.
+- **Test defects fixed:** a locator clash ("RenameDownload" contains "renamed"), a racy reload count, too-short timeouts, and the wait helper that never awaited the worker.
+- **Independent review:** a read-only reviewer predicted the two blockers before CI ran and found six more issues, all applied.
+
+What these results do **not** prove (NOT RUN / unverified): physical phones (real install prompt and standalone display, maskable icon on a launcher, airplane-mode use, the update flow on Android Chrome); real GitHub Pages hosting (headers such as `max-age=600`, redirects; the test server only imitates them); Safari and Firefox release builds (Playwright's builds were used, desktop only); the real `beforeinstallprompt` event (synthetic in tests); Lighthouse installability audit; deployment.
 
 ## Phase 3 evidence (actual CI runs)
 Branch `phase-3-library-export` → [PR #3](https://github.com/Mabdelaziz/qr-pocket/pull/3); runner `ubuntu-24.04`, Node 22; lockfile regenerated in the cloud (167 packages: only `fake-indexeddb` added, no version/integrity changes).

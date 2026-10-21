@@ -165,3 +165,10 @@ Acceptance checks (A-DLG): Esc closes without change; focus return verified; Del
 - **Install hint**: if `beforeinstallprompt` fires, show a dismissible line on Generate, "Install QR Pocket for quick access. [Install] [Not now]"; dismissal remembered in `localStorage` (`qr-pocket.installDismissed`). If unsupported, show nothing (no iOS-instruction clutter in MVP).
 - **Offline-ready toast** once: "Ready to work offline" when precache completes (first install only).
 Acceptance checks (A-PWA): offline chip toggles with network emulation; update banner appears when a new SW is waiting (simulated in test) and Reload activates it; install hint is dismissible and stays dismissed; banners don't cover primary actions at 320 px and are announced politely.
+
+## Phase 4 notices as built (2026-10-21, SPEC-004)
+- Header chip **Offline** (icon + text; hidden online) and, while offline, a bar "You're offline. Creating, saving and exporting still work." Announced once per transition through the polite status region ("Back online." on return).
+- **Update bar** "A new version is ready." with **Reload** (primary) and **Later**; when the text field holds text the message adds "Reloading will clear the text you are typing." and follows the field. Never reloads on its own.
+- **Ready bar** "Ready to work offline." once per browser profile, with **Dismiss**.
+- **Install bar** titled "Keep QR Pocket on your phone" — "Install QR Pocket for quick access and offline QR creation. No account needed." — **Install app** / **Not now**; shown only after the browser offered installation and a QR has been shown; not announced.
+- All bars are inline under the header, labelled groups (accessible name follows the visible title/text), wrap at 320px and at 150%/200% text, targets ≥ 48px, and return focus to the screen heading when the focused bar closes.

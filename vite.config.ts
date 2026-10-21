@@ -43,6 +43,8 @@ export default defineConfig({
           { src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
         ],
       },
+      // The glob below already precaches the icons and the manifest; do not list them a second time.
+      includeManifestIcons: false,
       workbox: {
         // Cache names start with "qr-pocket" (ADR-009: the github.io origin is shared with other project sites).
         cacheId: 'qr-pocket',
