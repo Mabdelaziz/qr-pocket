@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR Pocket &mdash; before / after</title>
+<style>
+body{margin:0;background:#F5F7FB;color:#172033;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem}h2{font-size:1.1rem;margin:28px 0 8px;border-bottom:2px solid #c3cad6;padding-bottom:4px}
+.pair{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+figure{margin:0}figcaption{font-weight:700;margin:0 0 6px}figcaption span{display:block;font-weight:400;color:#55637A;font-size:.85rem}
+img{display:block;max-width:100%;height:auto;border:1px solid #c9d1de;border-radius:8px;background:#fff}
+p.note{color:#55637A;font-size:.9rem;max-width:760px}
+</style></head><body><main>
+<h1>QR Pocket &mdash; Phase 1 visual refinement: before / after</h1>
+<p class="note">Screenshots of the static mockups rendered in Microsoft Edge (headless) on 2026-10-21. &ldquo;Before&rdquo; is v1 (<a href="v1/index.html">v1/index.html</a>); &ldquo;after&rdquo; is v2 (<a href="index.html">index.html</a>). Frame IDs are unchanged. QR images are placeholders. These are visual comparisons only &mdash; not product tests.</p>
+
+<h2>Generate &mdash; G2 success (URL)</h2>
+<div class="pair">
+<figure><figcaption>Before (v1)<span>Form-like, helper text repeated, equal-weight buttons</span></figcaption><img src="../compare/before_G2.png" alt="Before: Generate screen with URL and QR preview in the v1 style" width="400"></figure>
+<figure><figcaption>After (v2)<span>Input card, one-line hint, centred QR card, Save primary, calm tonal Download/Share</span></figcaption><img src="../compare/after_G2.png" alt="After: Generate screen in the modern style" width="400"></figure>
+</div>
+
+<h2>Generate &mdash; G5 too long for Medium (explicit Low option)</h2>
+<div class="pair">
+<figure><figcaption>Before (v1)</figcaption><img src="../compare/before_G5.png" alt="Before: error state for text too long at Medium" width="400"></figure>
+<figure><figcaption>After (v2)<span>Warning panel: icon + title + explanation + recovery action; no misleading disabled-action message</span></figcaption><img src="../compare/after_G5.png" alt="After: warning panel with Use lower error correction button" width="400"></figure>
+</div>
+
+<h2>Saved &mdash; S1 populated</h2>
+<div class="pair">
+<figure><figcaption>Before (v1)<span>5 buttons wrapping onto 3 rows per card</span></figcaption><img src="../compare/before_S1.png" alt="Before: saved cards with wrapped action buttons" width="400"></figure>
+<figure><figcaption>After (v2)<span>Open primary in the header; one row of icon + label actions; active-pill navigation</span></figcaption><img src="../compare/after_S1.png" alt="After: compact saved cards" width="400"></figure>
+</div>
+
+<h2>Dialog &mdash; S7 delete confirmation</h2>
+<div class="pair">
+<figure><figcaption>Before (v1)</figcaption><img src="../compare/before_S7.png" alt="Before: delete confirmation dialog" width="400"></figure>
+<figure><figcaption>After (v2)<span>Danger icon, Cancel focus ring, solid red Delete</span></figcaption><img src="../compare/after_S7.png" alt="After: delete confirmation dialog" width="400"></figure>
+</div>
+</main></body></html>

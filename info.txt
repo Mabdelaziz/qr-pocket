@@ -1,0 +1,280 @@
+App Name: QR Pocket
+
+
+
+Project Name: qr-pocket
+
+
+
+GitHub Repository: qr-pocket
+
+
+
+Display Name: QR Pocket
+
+
+
+Tagline: Create. Save. Share.
+
+
+Build QR Pocket as a lightweight, offline-first Progressive Web App (PWA) using:
+- HTML, CSS, and TypeScript for the application.
+- Vite for packaging the application.
+- GitHub Actions for cloud-based building and testing.
+- GitHub Pages for free hosting.
+- IndexedDB for saving QR codes locally on the phone.
+This approach requires no Android Studio, Android SDK, Android Emulator, Java, Gradle, Flutter, or local build environment.
+
+The application will run on Android and can be installed on the phone's home screen, appearing similar to a regular mobile app.
+2. Available development options
+Option	Local build required?	APK output	Cost	Recommendation
+PWA + GitHub Pages	No	No	Free	Recommended
+
+Why choose PWA?
+
+It provides nearly everything your application requires without the complexity of native Android development.
+
+The only significant limitation is Gallery integration: a PWA can download QR images and share them with Android applications, but it cannot guarantee that images are saved directly into a specific Gallery album.
+
+If you require a standalone .apk installation file, Expo + EAS Build is the preferred alternative.
+3. Application features
+
+
+
+
+
+
+
+
+
+Generate QR Code
+
+Enter a website URL or any text, including Arabic, English, and emoji. Generate a QR code instantly and display a large, clear preview.
+
+
+
+
+
+Saved QR Codes
+
+Save generated QR codes inside the application, browse history, rename saved items, reopen codes, and delete unwanted entries.
+
+
+Download and Share
+
+Export high-quality PNG images, download them to Android storage, or share QR codes through compatible Android applications.
+
+
+
+The app should also support offline operation after the first successful load, mobile-friendly navigation, and persistent local data.
+
+
+6. How to get started
+1. Create the local folder
+   
+   D:\ClaudProjects\qr-pocket
+   
+   This contains only source code and documentation. You do not need an Android development environment.
+2. Open Claude Code
+   
+   Open the directory in your existing Claude Code setup and paste the master prompt.
+3. Review Phase 0
+   
+   Claude should prepare the project architecture, design decisions, and build plan without installing anything.
+4. Implement the application
+   
+   Approve the implementation phases when you are happy with the architecture.
+5. Create a GitHub repository
+   
+   Use GitHub New Repository and name it qr-pocket.
+6. Build and publish in the cloud
+   
+   GitHub Actions handles dependency installation, compilation, automated testing, and GitHub Pages deployment.
+7. Install on your Android phone
+   
+   Open the published URL in Chrome and select Install app or Add to Home screen.
+7. PWA versus native Android APK
+Capability	PWA	Native Android APK
+QR generation	Yes	Yes
+Offline operation	Yes	Yes
+Save QR history	Yes, browser storage	Yes, native storage
+Export PNG	Yes	Yes
+Share to apps	Where browser supports it	Yes
+Direct Gallery integration	Limited	Yes
+Installation from phone	Yes, through browser	Yes, through APK
+Android Studio required locally	No	No, with cloud builds
+Project complexity	Low	Medium
+Final recommendation: Start with the PWA architecture. It is simpler, smaller, free to host, and satisfies your main requirements without installing additional development software.
+
+If a real Android APK becomes necessary, use Expo + EAS cloud builds as a separate native-app path rather than introducing native development complexity at the beginning.
+
+
+
+
+Initial Claude Code prompt: 
+You are a senior software architect and full-stack/mobile web developer.
+
+PROJECT NAME: qr-pocket
+
+OBJECTIVE:
+Build a very lightweight Android-friendly QR Code Generator application that users can install on their phones, use offline, save generated QR codes inside the application, and download or share QR code images.
+
+MANDATORY CONSTRAINTS:
+1. Do not require Android Studio, Android SDK, Android Emulator, Kotlin, Java, Flutter, Gradle, Docker or a local build environment.
+2. Do not install build tools, dependencies, or run builds on my laptop.
+3. Use existing Claude Code capabilities to create and edit project files.
+4. All installation of build dependencies, application builds and automated tests must execute remotely using GitHub Actions.
+5. Prefer free and publicly available tools and services.
+6. Use a Progressive Web App (PWA) instead of a native Android application.
+7. Host the application through GitHub Pages.
+8. Never create a remote repository, push code, or deploy anything without my explicit approval.
+
+RECOMMENDED STACK:
+- HTML5
+- CSS3
+- TypeScript
+- Vite
+- Lightweight locally bundled QR code generation library
+- IndexedDB for saved QR codes
+- Service worker + Web App Manifest
+- GitHub Actions for cloud CI/CD
+- GitHub Pages for deployment
+
+Avoid unnecessary dependencies, heavyweight UI frameworks and complex architectures.
+
+FUNCTIONAL REQUIREMENTS:
+
+A. QR CODE GENERATOR
+- Allow users to enter arbitrary text or URL.
+- Support Arabic, English, Unicode and emoji.
+- Generate a QR code entirely offline.
+- Display a sharp preview immediately.
+- Validate input size based on actual QR payload capacity.
+- Never silently truncate text.
+- Maintain proper quiet zones and scanner-readable contrast.
+
+B. SAVE QR CODE IN APP
+- Allow users to save generated QR codes locally.
+- Store title, source text or URL, creation date, and relevant QR settings.
+- Use IndexedDB.
+- Provide a Saved QR Codes screen.
+- Support reopening, renaming, deleting, downloading and sharing saved QR codes.
+- Save payload metadata rather than unnecessary image duplicates.
+- Explain that browser data clearing can erase saved items.
+
+C. DOWNLOAD ANDROID IMAGE
+- Generate a high-quality PNG image, preferably 1024x1024.
+- Allow downloading QR images to Android storage.
+- Support the Web Share API where supported.
+- Provide a browser download fallback.
+- Do not falsely promise direct Android Gallery integration.
+
+D. USER INTERFACE
+- Minimal, modern, professional mobile-first design.
+- Two primary screens: Generate and Saved.
+- Simple navigation.
+- Large touch-friendly buttons.
+- Light theme and good accessibility.
+- English interface with correct Arabic text rendering.
+- No login, ads, subscriptions, unnecessary settings or analytics.
+
+E. PWA SUPPORT
+- Installable from Android Chrome.
+- Standalone mobile app appearance.
+- Correct application icon and splash behavior where supported.
+- Offline usage after first successful loading.
+- Cache all required application resources.
+- No runtime dependence on external CDNs.
+- Proper GitHub Pages base-path configuration.
+
+F. CLOUD BUILD AND DEPLOYMENT
+- Create GitHub Actions workflows for:
+  1. npm dependency installation.
+  2. TypeScript checking.
+  3. Linting.
+  4. Automated tests.
+  5. Production Vite build.
+  6. GitHub Pages deployment.
+- All builds should run on GitHub-hosted runners, not locally.
+- Use a lockfile and secure dependency practices.
+- Do not commit tokens or secrets.
+- Provide clear GitHub repository and Pages setup instructions.
+
+G. TESTING
+- Test text and URL generation.
+- Test Arabic and emoji encoding.
+- Test empty and oversized input.
+- Test generated QR interoperability using an independent decoder.
+- Test PNG export.
+- Test saved item persistence and deletion.
+- Test offline readiness and correct deployment paths.
+- Provide physical Android phone testing instructions instead of using an emulator.
+- Report only tests that have actually run.
+
+DEVELOPMENT PHASES:
+
+PHASE 0 — ARCHITECTURE AND PLANNING
+Inspect project directory, document the technology decisions, design the folder structure, assess QR libraries and plan GitHub Actions workflows.
+Create docs/PLAN.md and docs/DECISIONS.md.
+Do not implement application functionality yet.
+
+PHASE 1 — QR GENERATOR
+Implement basic application UI, text input, QR preview and generation.
+
+PHASE 2 — STORAGE AND EXPORT
+Add IndexedDB saved history, PNG download and Android sharing.
+
+PHASE 3 — PWA AND OFFLINE
+Implement manifest, service worker, installability and offline capabilities.
+
+PHASE 4 — CLOUD CI/CD
+Implement GitHub Actions workflows, automated tests and GitHub Pages deployment configuration.
+
+PHASE 5 — VALIDATION AND RELEASE
+After receiving authorization to publish, perform remote validation, report workflow status, provide deployed URL and Android installation instructions.
+
+WORKING RULES:
+- Keep the project simple and lightweight.
+- Do not over-engineer.
+- Do not install or build anything locally.
+- Make small, documented changes.
+- Provide a brief completion report after each phase.
+- Distinguish implemented functionality from tested functionality.
+- Request authorization before publishing.
+
+BEGIN WITH PHASE 0 ONLY.
+
+First, explain your recommended architecture, project structure, dependencies, cloud-build workflow, and any important trade-offs.
+
+Create the planning documents, then stop before writing application code.
+
+
+
+
+
+qr-pocket/
+│
+├── CLAUDE.md
+├── README.md
+├── docs/
+│   ├── PRODUCT_SPEC.md
+│   ├── ARCHITECTURE.md
+│   ├── DECISIONS.md
+│   ├── TEST_PLAN.md
+│   ├── RELEASE_CHECKLIST.md
+│   ├── PROGRESS.md
+│   └── design/
+│       └── SCREEN_SPECS.md
+│
+├── specs/
+│   ├── README.md
+│   ├── SPEC-001-qr-generation.md
+│   ├── SPEC-002-local-library.md
+│   ├── SPEC-003-export-share.md
+│   ├── SPEC-004-pwa-offline.md
+│   └── SPEC-005-ci-release.md
+│
+├── src/                  # Application source
+├── public/               # PWA icons and assets
+├── tests/                # Automated tests
+└── .github/workflows/    # Cloud CI and deployment
