@@ -1,20 +1,21 @@
-# QR Pocket CI — SPEC-005 (ADR-008, ADR-011). INERT until the repository is pushed (needs owner G2).
-# First executed 2026-10-21 via the phase-2-core pull request; results in docs/PROGRESS.md.
-# Action pins (GitHub API lookup 2026-10-21): checkout v7.0.1, setup-node v7.1.0, upload-artifact v7.0.2.
-# RE-VERIFY the tag -> SHA mapping immediately before the first push.
+# QR Pocket CI — SPEC-005 (ADR-008, ADR-011, ADR-018). Runs on pull requests and pushes to main, and is CALLED by deploy.yml
+# so a deployment re-runs exactly these checks. Results are recorded in docs/PROGRESS.md.
+# Action pins (GitHub API lookup 2026-10-22): checkout v7.0.1, setup-node v7.1.0, upload-artifact v7.0.2, upload-pages-artifact v5.0.0.
+# RE-VERIFY the tag -> SHA mapping whenever a pin is changed (Dependabot proposes updates).
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.ref }}   # github.workflow is the caller's name when called by deploy.yml
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
@@ -41,6 +42,10 @@ jobs:
         if: ${{ !cancelled() }}
       - run: npm run build:v2     # second build (id v2) into dist-v2: the update tests simulate a new deployment
         if: ${{ !cancelled() }}
+      - run: npm run stamp        # dist/version.json = the commit these bytes were built from (not precached)
+        if: ${{ !cancelled() }}
+      - run: npm run check:public # SPEC-005 AC6: no maps, secrets, local paths or unexpected URLs in what would be published
+        if: ${{ !cancelled() }}
       - run: npm run check:size   # fails if initial JS+CSS gzip > 150 KB (target; measured, reported)
         if: ${{ !cancelled() }}
       - run: npm audit --omit=dev --audit-level=high
@@ -56,6 +61,14 @@ jobs:
       - run: npm run test:e2e     # vite preview --base /qr-pocket/, axe-core, offline, subpath
         if: ${{ !cancelled() }}
         timeout-minutes: 25
+
+      # The exact bytes that passed every check above (e2e ran on this dist). deploy.yml publishes THIS artifact; on pull
+      # requests it is a dry run that proves the Pages packaging works. Only after ALL previous steps succeeded.
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        if: ${{ success() }}
+        with:
+          path: dist
+          retention-days: 1
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
@@ -79,4 +92,4 @@ jobs:
             echo "- Node: $(node -v)"
             if [ -f size-report.txt ]; then echo '- Bundle size:'; echo '```'; cat size-report.txt; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
-# Not included on purpose: Pages deploy (separate manual workflow, later), secrets, pull_request_target.
+# Not included on purpose: any deployment (deploy.yml is separate and manual), secrets, pull_request_target.

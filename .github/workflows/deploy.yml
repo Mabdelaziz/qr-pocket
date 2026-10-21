@@ -1,0 +1,74 @@
+# QR Pocket deployment to GitHub Pages — SPEC-005, ADR-018. MANUAL ONLY (workflow_dispatch). Never runs on its own.
+# Chain: guard (main only) -> verify (the full CI, called) -> deploy (the only job with write permissions) -> check-live.
+# NOT ENABLED: GitHub Pages is off and this workflow has never been run. See docs/DEPLOYMENT.md before the first dispatch.
+# Pins (GitHub API lookup 2026-10-22): checkout v7.0.1, configure-pages v6.0.0, deploy-pages v5.0.1.
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time; a queued one waits instead of cancelling a running one (a cancelled deploy can leave a mixed site).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Only the main branch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: 'Refuse anything but main'
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::Deployments run from refs/heads/main only; this run is on $REF."
+            exit 1
+          fi
+          echo "Deploying $GITHUB_SHA from $REF."
+
+  verify:
+    name: Full CI on this commit
+    needs: guard
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: [guard, verify]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write      # publish the artifact
+      id-token: write   # prove to Pages that this run is the publisher
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      # Publishes the "github-pages" artifact that the verified CI run above produced from dist/. Nothing is rebuilt here.
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  check-live:
+    name: Check the live site
+    needs: deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 'Live site serves the verified commit'
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: node scripts/check-live.mjs "$PAGE_URL" "$GITHUB_SHA"
