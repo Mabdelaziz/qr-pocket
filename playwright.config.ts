@@ -7,6 +7,7 @@ const BASE = 'http://127.0.0.1:4173/qr-pocket/';
 export default defineConfig({
   testDir: 'tests/e2e',
   fullyParallel: true,
+  globalTimeout: 10 * 60_000, // a stalled suite must fail fast, not burn the CI job limit
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 1 : 0,
   workers: process.env['CI'] ? 2 : undefined,

@@ -164,6 +164,8 @@ test.describe('SPEC-001 AC6: sharp, scanner-readable rendering', () => {
     expect(snap.width).toBe(total * snap.scale);
     expect(Number.isInteger(snap.scale)).toBe(true);
 
+    // Scan in plain code and assert once: tens of thousands of expect() calls block the runner (CI run 1 stalled here).
+    let badPixels = 0;
     let minX = snap.width;
     let maxX = -1;
     let minY = snap.height;
@@ -172,10 +174,7 @@ test.describe('SPEC-001 AC6: sharp, scanner-readable rendering', () => {
       for (let x = 0; x < snap.width; x++) {
         const i = (y * snap.width + x) * 4;
         const r = snap.data[i] ?? -1;
-        expect(r === 0 || r === 255).toBe(true);
-        expect(snap.data[i + 1]).toBe(r);
-        expect(snap.data[i + 2]).toBe(r);
-        expect(snap.data[i + 3]).toBe(255);
+        if ((r !== 0 && r !== 255) || snap.data[i + 1] !== r || snap.data[i + 2] !== r || snap.data[i + 3] !== 255) badPixels++;
         if (r === 0) {
           minX = Math.min(minX, x);
           maxX = Math.max(maxX, x);
@@ -184,6 +183,7 @@ test.describe('SPEC-001 AC6: sharp, scanner-readable rendering', () => {
         }
       }
     }
+    expect(badPixels).toBe(0); // only pure black/white, fully opaque: no anti-aliasing
     const margin = 4 * snap.scale;
     expect(minX).toBe(margin);
     expect(minY).toBe(margin);
