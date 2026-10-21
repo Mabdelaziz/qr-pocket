@@ -3,6 +3,8 @@ import { QUIET_ZONE } from '../render/layout';
 import { matrixToRgba, type RgbaImage } from '../render/pixels';
 
 export const EXPORT_SIZE = 1024;
+/** Upper bound for canvas PNG encoding; a 1024x1024 black/white image normally takes a few milliseconds. */
+export const ENCODE_TIMEOUT_MS = 15_000;
 
 export interface ExportLayout {
   /** Output side in pixels. */
@@ -52,7 +54,10 @@ export function renderPngBlob(matrix: QrMatrix, size: number = EXPORT_SIZE): Pro
   // Copy into a plain ArrayBuffer-backed array: ImageData requires one.
   ctx.putImageData(new ImageData(new Uint8ClampedArray(image.data), size, size), 0, 0);
   return new Promise<Blob>((resolve, reject) => {
+    // Watchdog: if the browser never calls back (memory pressure, throttled page) fail visibly instead of leaving the UI busy forever.
+    const timer = setTimeout(() => reject(new Error('PNG encoding timed out')), ENCODE_TIMEOUT_MS);
     canvas.toBlob((blob) => {
+      clearTimeout(timer);
       canvas.width = 0; // release the bitmap promptly
       canvas.height = 0;
       if (blob) resolve(blob);

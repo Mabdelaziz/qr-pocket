@@ -130,10 +130,51 @@ describe('SPEC-003 AC9: large payloads export and decode', () => {
     expect((await decodeWithZxing(image))?.text).toBe(text);
   });
 
-  it('a dense mixed Arabic/emoji payload near the Low limit decodes', async () => {
+  it('a dense mixed Arabic/emoji payload (QR version 23 at Low) decodes with ZXing; jsQR cannot read that version', async () => {
     // Cut by code points, never inside a surrogate pair.
     const text = Array.from('مرحبا \u{1F600} hello, '.repeat(120)).slice(0, 700).join('');
-    const image = renderExportRgba(matrixFor(text, 'L'));
-    expect(Array.from(decodeWithJsQr(image) ?? [])).toEqual(Array.from(utf8.encode(text)));
+    const matrix = matrixFor(text, 'L');
+    expect(matrix.version).toBe(23);
+    // CI diagnostic (run 39640374525): jsQR returns nothing for this symbol at every scale, even for plain ASCII of the
+    // same byte length, while ZXing reads it exactly. A version-specific limit of the 2021 jsQR reader, not an encoder bug.
+    expect((await decodeWithZxing(renderExportRgba(matrix)))?.text).toBe(text);
   });
+});
+
+// Byte-mode capacity per QR version at error-correction level L (ISO/IEC 18004). Filling each version to capacity
+// checks both our capacity assumptions and the encoder's output for EVERY symbol size.
+const BYTE_CAPACITY_L = [
+  17, 32, 53, 78, 106, 134, 154, 192, 230, 271, 321, 367, 425, 458, 520, 586, 644, 718, 792, 858, 929, 1003, 1091, 1171, 1273, 1367, 1465, 1528, 1628, 1732,
+  1840, 1952, 2068, 2188, 2303, 2431, 2563, 2699, 2809, 2953,
+];
+
+/** Deterministic printable-ASCII noise (no repetition a decoder could exploit). */
+function noise(length: number, seed: number): string {
+  let x = seed;
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    x = (x * 1103515245 + 12345) & 0x7fffffff;
+    out += String.fromCharCode(33 + (x % 94));
+  }
+  return out;
+}
+
+describe('SPEC-003 AC1/AC9: every QR version 1..40, filled to capacity at Low, decodes from the exported pixels', () => {
+  it('ZXing reads all 40 versions exactly (jsQR results are recorded, not hidden)', async () => {
+    const jsQrUnreadable: number[] = [];
+    for (let version = 1; version <= 40; version++) {
+      const capacity = BYTE_CAPACITY_L[version - 1] as number;
+      const text = noise(capacity, version);
+      const matrix = matrixFor(text, 'L');
+      expect(matrix.version, `capacity table entry for version ${version}`).toBe(version);
+      const image = renderExportRgba(matrix);
+      const zx = await decodeWithZxing(image);
+      expect(zx?.text, `ZXing, version ${version}`).toBe(text);
+      const js = decodeWithJsQr(image);
+      if (!js || Array.from(js).join(',') !== Array.from(utf8.encode(text)).join(',')) jsQrUnreadable.push(version);
+    }
+    // jsQR (last released 2021) is a weaker reference decoder and fails on some symbol sizes; ZXing is the authority.
+    console.info('jsQR could not read QR versions:', JSON.stringify(jsQrUnreadable));
+    expect(jsQrUnreadable.length).toBeLessThan(10); // it must still read the large majority, or the fixture itself is suspect
+  }, 120_000);
 });

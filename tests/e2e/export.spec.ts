@@ -201,17 +201,25 @@ test.describe('SPEC-003 AC3/AC7: saved cards export from the stored payload with
 
 /** Installs a controllable Web Share stub before the app loads. */
 async function stubShare(page: Page): Promise<void> {
+  page.on('console', (m) => {
+    if (m.text().startsWith('[diag]')) console.log(`[browser] ${m.text()}`); // TEMPORARY diagnostic
+  });
   await page.addInitScript(() => {
     const w = window as unknown as { __shares: Array<Record<string, unknown>>; __shareMode: string };
     w.__shares = [];
     w.__shareMode = 'ok';
     Object.defineProperty(navigator, 'canShare', {
       configurable: true,
-      value: (data?: ShareData) => !!data?.files && data.files.length > 0 && data.files.every((f) => f.type === 'image/png'),
+      value: (data?: ShareData) => {
+        const ok = !!data?.files && data.files.length > 0 && data.files.every((f) => f.type === 'image/png');
+        console.info('[diag] stub.canShare', ok);
+        return ok;
+      },
     });
     Object.defineProperty(navigator, 'share', {
       configurable: true,
       value: async (data: ShareData) => {
+        console.info('[diag] stub.share called', data.files?.length);
         const file = data.files?.[0];
         const header = file ? Array.from(new Uint8Array(await file.arrayBuffer()).slice(0, 24)) : [];
         w.__shares.push({ keys: Object.keys(data), count: data.files?.length ?? 0, name: file?.name, type: file?.type, size: file?.size, header });
