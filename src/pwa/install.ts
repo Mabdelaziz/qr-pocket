@@ -2,8 +2,10 @@ import {
   INSTALL_TEXT,
   parseInstallState,
   shouldShowInstallPrompt,
+  sanitizeInstallState,
   withDismissed,
   withInstalled,
+  withoutShown,
   withShown,
   type InstallState,
 } from './installPolicy';
@@ -20,7 +22,10 @@ const BAR = 'install';
 
 function readState(): InstallState {
   try {
-    return parseInstallState(localStorage.getItem(KEY));
+    const stored = parseInstallState(localStorage.getItem(KEY));
+    const clean = sanitizeInstallState(stored, Date.now());
+    if (JSON.stringify(clean) !== JSON.stringify(stored)) writeState(clean); // a clock that moved backwards restarts the cooldown
+    return clean;
   } catch {
     return {}; // storage blocked: behave as a first visit, never persist
   }
@@ -69,7 +74,6 @@ export function initInstallPrompt(notices: Notices): InstallPrompt {
     });
     if (!allowed) return;
     shownThisSession = true;
-    writeState(withShown(readState(), now));
     notices.show(BAR, {
       kind: 'info',
       icon: 'download',
@@ -87,6 +91,7 @@ export function initInstallPrompt(notices: Notices): InstallPrompt {
         },
       ],
     });
+    writeState(withShown(readState(), now)); // remembered only once the bar is really on the page
     // Deliberately NOT announced: it is not urgent, would interrupt the "QR code ready" message, and the labelled group is
     // the first thing a screen-reader user meets at the top of the page.
   }
@@ -101,7 +106,8 @@ export function initInstallPrompt(notices: Notices): InstallPrompt {
       const choice = await event.userChoice;
       if (choice.outcome === 'dismissed') writeState(withDismissed(readState(), Date.now()));
     } catch {
-      /* the browser refused to show its prompt; nothing else to do */
+      // The browser refused to show its prompt: do not count it as shown, so a later browser event may offer it again.
+      writeState(withoutShown(readState()));
     }
   }
 

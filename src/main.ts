@@ -21,8 +21,8 @@ const views: Readonly<Record<Route, { section: HTMLElement; heading: HTMLElement
 
 let focusInputNext = false;
 
-const install = initPwa(byId('text', HTMLTextAreaElement));
-const generate = initGenerate({ store, canShare, onFirstQr: () => install.notifyEngaged() });
+const pwa = initPwa(byId('text', HTMLTextAreaElement));
+const generate = initGenerate({ store, canShare, onFirstQr: () => pwa.notifyEngaged(), onTextChange: () => pwa.textChanged() });
 const saved = initSaved({
   store,
   canShare,

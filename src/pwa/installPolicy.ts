@@ -25,10 +25,27 @@ export interface InstallContext {
 export function shouldShowInstallPrompt(ctx: InstallContext): boolean {
   if (!ctx.hasPromptEvent || !ctx.engaged || ctx.standalone || ctx.shownThisSession) return false;
   if (ctx.state.installedAt !== undefined) return false;
-  // Absolute difference: a clock that moved backwards must not re-enable a prompt early.
-  if (ctx.state.dismissedAt !== undefined && Math.abs(ctx.now - ctx.state.dismissedAt) < DISMISS_COOLDOWN_MS) return false;
-  if (ctx.state.shownAt !== undefined && Math.abs(ctx.now - ctx.state.shownAt) < IGNORED_COOLDOWN_MS) return false;
+  // A timestamp in the future (clock moved backwards) gives a negative age, which is still inside the cooldown.
+  // Callers sanitise stored state first (sanitizeInstallState) so such a timestamp cannot block forever either.
+  if (ctx.state.dismissedAt !== undefined && ctx.now - ctx.state.dismissedAt < DISMISS_COOLDOWN_MS) return false;
+  if (ctx.state.shownAt !== undefined && ctx.now - ctx.state.shownAt < IGNORED_COOLDOWN_MS) return false;
   return true;
+}
+
+/**
+ * A stored timestamp later than `now` means the device clock moved backwards. Treat it as "just happened": the cooldown
+ * restarts from now instead of being skipped (early prompt) or lasting until the wrong future date (blocked for good).
+ */
+export function sanitizeInstallState(state: InstallState, now: number): InstallState {
+  const clamp = (value: number | undefined): number | undefined => (value !== undefined && value > now ? now : value);
+  const next: { dismissedAt?: number; shownAt?: number; installedAt?: number } = {};
+  const dismissedAt = clamp(state.dismissedAt);
+  const shownAt = clamp(state.shownAt);
+  const installedAt = clamp(state.installedAt);
+  if (dismissedAt !== undefined) next.dismissedAt = dismissedAt;
+  if (shownAt !== undefined) next.shownAt = shownAt;
+  if (installedAt !== undefined) next.installedAt = installedAt;
+  return next;
 }
 
 /** Tolerant parser for the stored state: anything unexpected yields an empty state. */
@@ -55,6 +72,13 @@ export function parseInstallState(raw: string | null): InstallState {
   }
 }
 
+/** Forget that the prompt was shown (used when the browser refused to display its own prompt). */
+export function withoutShown(state: InstallState): InstallState {
+  const next: { dismissedAt?: number; installedAt?: number } = {};
+  if (state.dismissedAt !== undefined) next.dismissedAt = state.dismissedAt;
+  if (state.installedAt !== undefined) next.installedAt = state.installedAt;
+  return next;
+}
 export const withShown = (state: InstallState, now: number): InstallState => ({ ...state, shownAt: now });
 export const withDismissed = (state: InstallState, now: number): InstallState => ({ ...state, dismissedAt: now });
 export const withInstalled = (state: InstallState, now: number): InstallState => ({ ...state, installedAt: now });

@@ -7,10 +7,12 @@ import {
   INSTALL_TEXT,
   UPDATE_TEXT,
   parseInstallState,
+  sanitizeInstallState,
   shouldShowInstallPrompt,
   updateMessage,
   withDismissed,
   withInstalled,
+  withoutShown,
   withShown,
   type InstallContext,
 } from '../../src/pwa/installPolicy';
@@ -54,8 +56,20 @@ describe('SPEC-004 AC10: install prompt policy', () => {
     expect(allow({ state })).toBe(false);
   });
 
-  it('a clock that moved backwards cannot re-enable the prompt early', () => {
+  it('a future timestamp (clock moved backwards) is still inside the cooldown', () => {
     expect(allow({ state: withDismissed({}, NOW + 5 * DAY_MS) })).toBe(false);
+    expect(allow({ state: withShown({}, NOW + 400 * DAY_MS) })).toBe(false); // even far in the future: not skipped
+  });
+
+  it('sanitising clamps future timestamps to now, so the cooldown restarts instead of lasting until the wrong date', () => {
+    const clean = sanitizeInstallState({ dismissedAt: NOW + 400 * DAY_MS, shownAt: NOW - DAY_MS }, NOW);
+    expect(clean).toEqual({ dismissedAt: NOW, shownAt: NOW - DAY_MS });
+    expect(allow({ state: clean })).toBe(false); // restarted cooldown
+    expect(allow({ state: { dismissedAt: NOW - DISMISS_COOLDOWN_MS - 1 } })).toBe(true); // and it expires normally later
+  });
+
+  it('a prompt the browser refused to show is not counted as shown', () => {
+    expect(withoutShown({ shownAt: NOW, dismissedAt: 5 })).toEqual({ dismissedAt: 5 });
   });
 });
 

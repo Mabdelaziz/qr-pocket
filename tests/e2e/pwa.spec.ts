@@ -390,6 +390,17 @@ test.describe('SPEC-004 AC10: install prompt', () => {
     await expect(installBar(page)).toHaveCount(0);
   });
 
+  test("SPEC-004 AC10: an untouched page is not engagement: only the visitor's own action (typing, Open) makes the prompt eligible", async ({ page }) => {
+    await saveText(page, URL_TEXT);
+    await page.reload(); // fresh page session; the visitor has done nothing yet
+    await fireInstallPrompt(page);
+    await page.waitForTimeout(500);
+    await expect(installBar(page)).toHaveCount(0);
+    await openSaved(page);
+    await page.getByRole('button', { name: `Open ${URL_TEXT}` }).click(); // a real action in this session
+    await expect(installBar(page)).toBeVisible();
+  });
+
   test('SPEC-004 AC10: without a browser install event nothing is shown or promised', async ({ page }) => {
     await useApp(page);
     await page.waitForTimeout(500);

@@ -118,6 +118,23 @@ test.describe('SPEC-004 AC5/AC6: a new deployment is offered, never forced', () 
     });
   });
 
+  test('SPEC-004 AC5: the unsaved-text warning counts whitespace and follows Clear and Open, not only typing', async ({ page }) => {
+    await withDeployedApp(page, async (server) => {
+      await saveText(page, 'a saved code');
+      await input(page).fill('   '); // whitespace is still what the field shows
+      server.setRoot(V2);
+      await checkForUpdate(page);
+      await expect(updateBar(page)).toContainText('Reloading will clear the text you are typing.');
+
+      await page.getByRole('button', { name: 'Clear' }).click(); // a programmatic change: no input event
+      await expect(updateBar(page)).not.toContainText('Reloading will clear');
+
+      await openSaved(page);
+      await page.getByRole('button', { name: /^Open / }).click(); // Open fills the field
+      await expect(updateBar(page)).toContainText('Reloading will clear the text you are typing.');
+    });
+  });
+
   test('SPEC-004 AC7: "Later" hides the bar and keeps the current build; the offer returns on the next visit', async ({ page }) => {
     await withDeployedApp(page, async (server) => {
       await page.evaluate(() => ((window as unknown as { __marker: string }).__marker = 'alive'));

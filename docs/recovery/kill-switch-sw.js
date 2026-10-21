@@ -5,6 +5,8 @@
 // delete the app's caches and unregister, so every request goes straight to the network again.
 //
 // It never touches IndexedDB: saved QR codes stay on the device. It has no fetch handler and caches nothing.
+// The github.io origin is shared with other project sites, so only caches that belong to THIS app are deleted: Workbox
+// names them "qr-pocket-precache-v2-<this worker's scope URL>", which another project cannot share.
 self.addEventListener('install', () => {
   self.skipWaiting(); // do not wait for old tabs to close: this is an emergency path
 });
@@ -12,9 +14,14 @@ self.addEventListener('install', () => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      const names = await caches.keys();
-      await Promise.all(names.filter((name) => name.startsWith('qr-pocket')).map((name) => caches.delete(name)));
-      await self.registration.unregister();
+      try {
+        const scope = self.registration.scope;
+        const names = await caches.keys();
+        const ours = names.filter((name) => name.startsWith('qr-pocket') && name.includes(scope));
+        await Promise.allSettled(ours.map((name) => caches.delete(name)));
+      } finally {
+        await self.registration.unregister(); // even if cache cleanup failed: stop controlling the app
+      }
     })(),
   );
 });

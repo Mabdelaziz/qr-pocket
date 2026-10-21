@@ -33,10 +33,17 @@ function rememberOfflineReady(): void {
 }
 
 /** Offline/online status, update and install notices, service-worker registration. */
-export function initPwa(textField: HTMLTextAreaElement): InstallPrompt {
+export interface Pwa extends InstallPrompt {
+  /** Call whenever the text field changes (typing, Clear, Open): keeps the update warning truthful. */
+  textChanged(): void;
+}
+
+export function initPwa(textField: HTMLTextAreaElement): Pwa {
   const notices = createNotices(byId('notices', HTMLElement));
   const chip = byId('offline-chip', HTMLElement);
-  const hasEditedText = (): boolean => textField.value.trim() !== '';
+  // Any text counts, even whitespace: reloading would clear exactly what is visible in the field.
+  const hasEditedText = (): boolean => textField.value.length > 0;
+  const textChanged = (): void => notices.setText('update', updateMessage(hasEditedText()));
 
   // ---- offline / online
   const applyConnectivity = (announceChange: boolean): void => {
@@ -62,13 +69,13 @@ export function initPwa(textField: HTMLTextAreaElement): InstallPrompt {
       // Only claim offline support if the app's precache really exists (a recovery worker deletes it).
       void hasAppCache().then((present) => {
         if (!present || alreadyToldOfflineReady()) return;
-        rememberOfflineReady();
         notices.show('ready', {
           kind: 'success',
           icon: 'ok',
           text: 'Ready to work offline.',
           actions: [{ id: 'dismiss', label: 'Dismiss', onClick: () => notices.hide('ready') }],
         });
+        rememberOfflineReady(); // only after the notice is really shown
         announce('Ready to work offline.');
       });
     },
@@ -86,7 +93,7 @@ export function initPwa(textField: HTMLTextAreaElement): InstallPrompt {
     },
   });
   // The warning about unsaved text follows what the visitor types; the bar itself never reloads anything.
-  textField.addEventListener('input', () => notices.setText('update', updateMessage(hasEditedText())));
+  textField.addEventListener('input', textChanged);
 
-  return initInstallPrompt(notices);
+  return { ...initInstallPrompt(notices), textChanged };
 }
