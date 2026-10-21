@@ -1,9 +1,36 @@
 # QR Pocket — Progress
 
-**Current milestone:** Phase 2 (Core, SPEC-001) — **cloud CI is green** (run https://github.com/Mabdelaziz/qr-pocket/actions/runs/39630462029, commit `95ed734`, PR #1 https://github.com/Mabdelaziz/qr-pocket/pull/1, 2026-10-21). **Awaiting your approval to continue to Phase 3** and to merge PR #1. Gates: G1 ✔, G1b ✔, **G2 ✔ (2026-10-21; public repo, Pages disabled, no deployment)**.
-**Next small task (after your approval):** merge PR #1, then Phase 3 (SPEC-002 local library, SPEC-003 export/share), tests first, same loop.
+**Current milestone:** Phase 3 (SPEC-002 local library + SPEC-003 PNG export/share) — **cloud CI green** ([run 39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265), commit `421ab72`, [PR #3](https://github.com/Mabdelaziz/qr-pocket/pull/3), 2026-10-21). **Awaiting your approval** to merge PR #3 and to start Phase 4. Gates: G1 ✔, G1b ✔, G2 ✔ (incl. merge of PR #1, repository hardening, `main` = verified baseline `915fd85`/`b837e53`).
+**Next small task (after your approval):** merge PR #3, then Phase 4 (SPEC-004 PWA/offline) — see the Phase 4 plan in `docs/PHASE_3_REPORT.md`.
 
-## Verified results (actual CI evidence)
+## Phase 3 evidence (actual CI runs)
+Branch `phase-3-library-export` → [PR #3](https://github.com/Mabdelaziz/qr-pocket/pull/3); runner `ubuntu-24.04`, Node 22; lockfile regenerated in the cloud (167 packages: only `fake-indexeddb` added, no version/integrity changes).
+
+| Run | Commit | Result |
+|---|---|---|
+| [39639713966](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39639713966) | `ecab113` | **FAIL** — typecheck+lint (unused import in a test), unit 178/179 (jsQR cannot read QR version 23), browser 90/91 (keyboard-trap assertion too strict for headless Chromium). Build, size, audit, licences passed. |
+| [39640374525](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39640374525) | `780f797` | **FAIL** — temporary decoder diagnostic proved the v23 failure is a jsQR limit (ZXing reads it); browser 89/91: two Share tests stalled. |
+| [39641345216](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39641345216) | `9b88a98` | unit **180/180**; browser 89 + 1 flaky + 1 failed — traces showed `canvas.toBlob` taking > 5 s intermittently. |
+| [39642123363](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642123363) | `b6fa429` | browser **91/91** (1.6 min) after CPU-backed canvases; the unit step failed on an *unhandled error* from fake-indexeddb → exposed a real bug (double `abort()` after a request error). |
+| [39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265) | `421ab72` | **PASS — all 17 steps.** |
+
+Results of the passing run:
+| Check | Result |
+|---|---|
+| `npm ci`, typecheck (strict), ESLint | PASS |
+| Unit tests (Vitest) | **180 passed, 0 failed, 0 skipped** — export-png 39, store 32, encode 32, surrogates 15, ZXing decode 14, layout 9, model 8, titles 7, share 7, filename 6, savedModel 5, saveState 4, encode-failure 2 |
+| Browser tests (Playwright, Chromium) | **91 passed, 0 failed, 0 skipped** (2.2 min) — generate 41 (Phase 2, unchanged), library 27, export 23 |
+| Production build / bundle (gzip) | PASS · **21.44 KB** total (JS 16.36 + CSS 2.71 + HTML 2.36) vs 150 KB budget |
+| `npm audit --omit=dev` / licences | 0 vulnerabilities · PASS (`qrcode-generator` MIT is the only production dependency) |
+
+Findings and fixes during the loop (all root-caused, none by weakening a test):
+- **Real bugs found by tests/review and fixed:** (1) *Open from Saved* drew the QR at 1 px/module because the Generate view was hidden when it was drawn → `refresh()` on route change + a test that compares canvas sizes; (2) double `abort()` after a failed request (fake-indexeddb raised an uncaught error); (3) Esc could close rename/delete dialogs while the write was in flight; (4) `indexedDB` access could throw at load (now treated as unavailable); (5) an export could stay "busy" forever if `toBlob` never returned → 15 s watchdog + visible error; (6) a lint-flagged invisible-character regex in the filename module.
+- **Environment finding:** intermittent `canvas.toBlob` stalls (> 5 s) on the GPU-less runner; fixed by CPU-backed canvases (`willReadFrequently`), which also cut the browser suite from 2.3 to 1.6–2.2 min. The GPU-readback cause is inferred from traces and the effect of the fix, not proven.
+- **Decoder interoperability:** every QR version 1–40, filled to capacity at Low with diverse content, is read exactly by ZXing from the exported pixels. jsQR reads 39 of 40; **version 23 is unreadable by jsQR at every scale (even plain ASCII)** — a limit of that 2021 library, recorded in the test output.
+
+What these results do **not** prove (still NOT RUN / unverified): physical phones (Arabic scan with real scanners, real Web Share targets, Downloads location, TalkBack, real on-screen keyboard, fractional DPR sharpness); browsers other than Chromium (IndexedDB/dialog behaviour in Firefox/Safari); native Web Share (stubbed in tests); offline/installability (Phase 4).
+
+## Phase 2 evidence (kept)
 Repository: https://github.com/Mabdelaziz/qr-pocket (PUBLIC, Pages disabled, default token read-only). Branch `phase-2-core` → PR #1. Runner: GitHub-hosted `ubuntu-24.04`, Node 22.
 
 | Run | What | Result |
@@ -55,7 +82,7 @@ What these results do **not** prove (still NOT RUN / unverified):
 | 0 Plan | Docs and specs (this) | Owner approves G1 |
 | 1 UX | Static HTML/CSS wireframes of Generate, Saved, dialogs, banners; states; a11y notes | Owner approves G1b; A-GEN/A-SAV/A-DLG/A-PWA checks written |
 | 2 Core (SPEC-001) | **Written 2026-10-21 (NOT VERIFIED):** scaffold, `src/qr`, `src/render`, `src/ui`, tests, workflows | CI-verified: T-001-* green (needs G2 + first cloud run) |
-| 3 Library+export (SPEC-002/003) | store/, Saved UI, dialogs, PNG, share | T-002-*, T-003-* green; a11y/resp checks green |
+| 3 Library+export (SPEC-002/003) | **Done 2026-10-21 — CI green ([run 39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265))**; awaiting your approval | T-002-*, T-003-* green; a11y/resp checks green ✔ |
 | 4 PWA (SPEC-004) | manifest, icons, SW, notices | T-004-* green incl. offline + update + subpath |
 | 5 CI/release (SPEC-005) | Workflows, size/audit gates, Pages deploy workflow (manual) | Workflows green on PR; deploy workflow reviewed; **G2** obtained |
 | 6 Phone UAT | Owner runs TEST_PLAN §5 on deployed URL | All U-steps recorded; no S1/S2 open |

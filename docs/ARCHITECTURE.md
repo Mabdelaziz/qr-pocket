@@ -25,23 +25,24 @@ Dependency direction: `ui → {qr, render, store, share, pwa}`; `render → qr` 
 No payload ever leaves the device; the only network traffic is loading/updating the static app shell.
 
 ## 3. Storage schema (IndexedDB)
-DB `qr-pocket`, version 1, store `codes` (keyPath `id`), index `updatedAt`.
+DB `qr-pocket`, version 1, store `codes` (keyPath `id`), index `createdAt`. Listing order is newest first by `createdAt` (ADR-016).
 ```ts
 interface SavedCode {
   id: string;            // crypto.randomUUID()
-  title: string;         // 1–80 chars
+  title: string;         // 1–80 code points
   payload: string;       // original text, exact
   ecc: 'L' | 'M';        // level actually used
+  source: 'typed' | 'scanned'; // 'scanned' reserved for V1.1 camera scanning; 1.0 writes 'typed' only
   createdAt: number;     // epoch ms
   updatedAt: number;
   v: 1;                  // record schema version
 }
 ```
-Migrations: `onupgradeneeded` switch on `oldVersion`. Hand-written ~60-line promise wrapper (ADR-004) — no dependency. Errors map to `StorageUnavailable | QuotaExceeded | Unknown` and are surfaced in the UI. Call `navigator.storage.persist()` best-effort after first save (never relied upon, never claimed).
+Migrations: `onupgradeneeded` switch on `oldVersion` (v1 creates the store). Hand-written promise wrapper in `src/store/indexedDb.ts` (ADR-004) — no dependency; every operation resolves on transaction **complete** and rejects on abort/error. `add` uses `IDBObjectStore.add` only, so an existing record is never overwritten. Errors map to `StoreError` kinds `unavailable | quota | not-found | invalid | unknown` and are surfaced in the UI; generation and export never depend on storage. `navigator.storage.persist()` is NOT requested in 1.0 (not claimed anywhere).
 
 ## 4. QR encoding and rendering
 - Byte mode, UTF-8 (`TextEncoder`), explicit ECC chosen by the user (default M, never auto-downgraded); thin wrapper around `qrcode-generator` so the library is swappable (ADR-002).
-- Rendering is ours: draw dark modules with `fillRect` at an **integer** scale, `imageSmoothingEnabled=false`, quiet zone 4 modules. For 1024 export: scale = floor(1024 / (n+8)); QR centred on a white 1024×1024 canvas (extra white margin, never fractional blur).
+- Rendering is ours: draw dark modules with `fillRect` at an **integer** scale, `imageSmoothingEnabled=false`, quiet zone 4 modules. For the 1024 export (`src/export/png.ts`): largest EVEN integer scale with scale × (n+8) ≤ 1024, symbol centred on a white 1024×1024 image so the padding is exactly symmetric (largest symbol: 4 px/module); pixels are produced by a pure function (`renderExportRgba`) that tests decode directly, then encoded by the canvas.
 - `canvas.toBlob('image/png')`; fallback path if `OffscreenCanvas` missing — use plain `HTMLCanvasElement`.
 
 ## 5. PWA and service-worker scope

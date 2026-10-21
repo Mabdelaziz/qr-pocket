@@ -7,6 +7,7 @@ const BASE = 'http://127.0.0.1:4173/qr-pocket/';
 export default defineConfig({
   testDir: 'tests/e2e',
   fullyParallel: true,
+  expect: { timeout: 10_000 }, // shared 2-vCPU CI runners can be slow; assertions still fail if the condition never holds
   globalTimeout: 10 * 60_000, // a stalled suite must fail fast, not burn the CI job limit
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 1 : 0,

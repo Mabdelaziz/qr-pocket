@@ -1,54 +1,67 @@
 # SPEC-003 — PNG export and share
 
-Status: DRAFT
+Status: VERIFIED by cloud CI 2026-10-21 ([run 39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265), commit `421ab72`, PR #3; Chromium on ubuntu-24.04). Not yet DONE: physical-phone UAT (U9, U10), real Web Share targets and other browsers are outstanding.
 
 ## Goal
-Produce a 1024×1024 PNG on demand from a payload and let the user download or share it.
+Produce a 1024×1024 PNG on demand from a payload (never from stored images) and let the user download or share it.
 
 ## User story
 US-07, US-08.
 
 ## In / out of scope
-In: PNG render, safe filename, download, Web Share (files) with fallback, from Generate and Saved. Out: SVG/PDF, Gallery writes, clipboard, size choices, text sharing.
+In: PNG render, safe filename, download, Web Share (files) only when supported, from Generate and from Saved cards. Out: SVG/PDF, Gallery writes, clipboard, size choices, text/URL sharing, sending any payload to an external service.
 
 ## Dependencies
-SPEC-001 (matrix, renderer); SPEC-002 for the Saved entry points. Screen specs §1–2.
+SPEC-001 (matrix, `matrixToRgba`); SPEC-002 for the Saved entry points. Screen specs §1–2.
 
 ## UI impact
-Download PNG and Share buttons (Generate and each saved card); inline error/status.
+Download PNG and Share buttons (Generate and each saved card); inline error panels; "Sharing files isn't supported in this browser." line when Share is hidden.
 
 ## Interface / data contracts
 ```ts
-function toPngBlob(m: QrMatrix, size = 1024): Promise<Blob>;       // image/png, exactly size×size
-function pngFilename(title: string, date: Date): string;          // 'qr-<slug>-yyyymmdd.png'
-function download(blob: Blob, filename: string): void;            // <a download>, revokes URL
-function canShareFile(file: File): boolean;                       // navigator.canShare?.({files:[file]})
-function shareFile(file: File, title: string): Promise<'shared' | 'cancelled'>; // throws ShareError
+// src/export/png.ts
+function computeExportLayout(modules: number, size = 1024): { size: number; scale: number; offset: number; pixels: number };
+function renderExportRgba(matrix: QrMatrix, size = 1024): RgbaImage;   // pure; what the PNG contains
+function renderPngBlob(matrix: QrMatrix, size = 1024): Promise<Blob>;  // image/png via canvas
+// src/export/filename.ts
+function slugify(title: string): string;
+function pngFilename(title: string, date: Date): string;               // 'qr-<slug>-yyyymmdd.png'
+// src/export/download.ts
+function downloadBlob(blob: Blob, filename: string): void;             // <a download>; revokes the object URL
+// src/share/share.ts
+function canShareImageFiles(nav?: Navigator): boolean;
+function shareImageFile(file: File, nav?: Navigator): Promise<'shared' | 'cancelled'>; // throws ShareError
 ```
-Filename: Unicode-normalised, strip `\/:*?"<>|` and control chars, collapse whitespace to `-`, lowercase ASCII, keep Arabic letters, max 40 chars of slug, fallback `qr-code`, no reserved Windows names.
-PNG: integer module scale centred on white 1024², smoothing off, quiet zone ≥ 4 modules.
+**Layout:** modules are drawn at the largest **even integer** scale `s` with `s * (modules + 8) <= 1024`; the symbol including its 4-module quiet zone is centred, so the left/right and top/bottom white margins are identical (evenness makes the padding exactly symmetric because 1024 is even and `modules + 8` is odd). Black `#000` modules on white `#fff`, fully opaque, no anti-aliasing. Largest symbol (version 40, 177 modules) → 4 px/module; typical symbols ≥ 10 px/module.
+**Filename:** NFC-normalised; control and bidi-control characters removed; lower-cased; any run of characters that are not letters, combining marks or digits becomes `-`; ≤ 40 code points; fallback `code`; always `qr-<slug>-<yyyymmdd>.png` (local date), ≤ 60 characters. Arabic letters are kept; emoji and path/reserved characters are dropped.
+**Share:** feature-detected with `navigator.share` + `navigator.canShare({ files })` using a tiny probe image file; only a PNG `File` is shared (no `title`/`text`/`url`, so the payload is not sent as text). `AbortError` → `'cancelled'` (silent); anything else → `ShareError` shown as "Couldn't open the share sheet. You can download the image instead."
+**Download:** object URL created for the click and revoked ≤ 4 s later; nothing retained.
 
 ## Behaviour
-- Download: build blob → anchor click → revoke object URL after use (next tick/timeout). Text says "Saved to your browser's Downloads"; **no Gallery promise**.
-- Share: only when `canShare({files})`; otherwise the button is hidden and the text "Sharing files isn't supported in this browser — use Download." is shown (ADR-012). Download is always available. Cancel (`AbortError`) → silent. `NotAllowedError`/other → message "Couldn't open the share sheet. You can download the image instead."
-- Busy state while rendering; double-tap guarded.
-- Edge: maximum-version QR (n=177) still ≥ 5 px/module (floor(1024/185)=5); empty/too-long payload → actions disabled; extremely long titles; concurrent clicks.
+- Download and Share are enabled only when a QR is shown (muted, not activatable, no explanatory message otherwise); a busy guard ignores repeated activations while rendering.
+- The PNG is derived from the payload and level (`encode` → matrix → pixels); saved cards use the record's payload/level and title; generated codes use the default title of the payload for the filename.
+- Share hidden when unsupported; the explanatory line replaces it; Download always remains.
+- Text copy: "Saved to your browser's Downloads" is never claimed as Gallery integration.
+- Edge: version-40 payload (2,953 bytes at Low) exports at 4 px/module and still decodes; titles with Arabic/emoji/slashes/200 characters/empty; concurrent clicks; encode failure for a corrupt stored record → error panel on Saved.
 
 ## Security / privacy / accessibility
-No network; file never uploaded by the app. Buttons have text labels, busy via `aria-busy`, results announced via live region. Objects URLs not retained.
+No network access; the file never leaves the device except through the user's chosen share target. Buttons have text labels and `aria-busy` while rendering; errors are alert panels.
 
 ## Acceptance criteria
-- AC1 Given any valid payload, then the PNG is exactly 1024×1024 and its pixels decode to the exact payload.
-- AC2 Given the PNG, then the margin around modules ≥ 4 modules wide and only black/white pixels (no anti-aliasing) appear.
-- AC3 Given titles with Arabic, emoji, slashes, reserved chars, 200 chars or empty, then the filename is valid, ≤ 60 chars total, ends `.png`.
-- AC4 Given Download, then a download event fires with that filename and object URLs are revoked.
-- AC5 Given `navigator.canShare` is missing or returns false, then the Share button is not present, the explanation text is visible, and Download works.
-- AC6 Given share rejects with AbortError, then no error is shown; given another error, then the message appears and the app stays usable.
-- AC7 Given a saved item, when exported, then the PNG is derived from stored payload (no stored image used).
-- AC8 Given keyboard/screen-reader use, then buttons are operable and results announced.
+- AC1 Given any valid payload, then the PNG is exactly 1024×1024 and its pixels decode (independent decoders: jsQR and ZXing) to the exact payload bytes.
+- AC2 Given the exported pixels, then only pure black and pure white appear, fully opaque; the white margin around the symbol is symmetric (left = right, top = bottom) and at least 4 modules wide; module blocks have integer size.
+- AC3 Given titles with Arabic, emoji, slashes, reserved characters, 200 characters or empty, then the filename is valid, ≤ 60 characters, ends `.png`, and keeps Arabic letters.
+- AC4 Given Download, then a download event fires with that filename, the file is a valid PNG, and every created object URL is revoked.
+- AC5 Given `navigator.share`/`canShare` is missing or returns false, then Share is not present, the explanation line is visible, and Download works.
+- AC6 Given share rejects with `AbortError`, then no error is shown; given another error, then the error panel appears, Download still works and the app stays usable.
+- AC7 Given a saved item, when exported, then the PNG is derived from the stored payload and level (no stored image exists), with the record title in the filename.
+- AC8 Given keyboard/screen-reader use, then buttons are operable, labelled and axe-clean.
+- AC9 Given a version-40 payload (2,953 bytes at Low), then export succeeds at 4 px/module and decodes exactly.
+- AC10 Given export/share, then no request leaves the origin.
+- AC11 Given no QR (empty/invalid/too long), then Download/Share do nothing when activated.
 
 ## Tests
-Automated (NOT RUN): T-003-1..4, T-A11Y. Manual: U9, U10 (Downloads location, Photos visibility not guaranteed, share targets).
+Automated (CI): `tests/unit/export-png.test.ts`, `filename.test.ts`, `share.test.ts`; `tests/e2e/export.spec.ts` (download bytes parsed and decoded in Node with a minimal PNG decoder, share stubs, object-URL tracking, network log, responsive/axe). Manual: UAT U9, U10 (Downloads location; Photos visibility not guaranteed; real share targets).
 
 ## Completion evidence
-None yet. Status DRAFT.
+[Run 39642640265](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39642640265) PASS: unit export-png 39 (layout for versions 1–40, exact pixels, symmetric margins, jsQR + ZXing on 14 payloads, 2,953 B at Low and 2,331 B at Medium, and every QR version 1–40 filled to capacity decoded by ZXing), filename 6, share 7; 23 export browser tests (real downloaded PNG bytes parsed by an independent PNG reader: 1024×1024, only black/white, symmetric margins ≥ 4 modules, even integer scale, decoded by jsQR and ZXing for 6 payload types incl. Arabic/emoji/bidi, a version-40 payload at 4 px/module; Arabic and sanitised filenames; object URLs revoked and single-shot downloads; Share hidden + explanation when unsupported; stubbed Web Share sends only a 1024×1024 PNG file; AbortError silent, other errors shown with Download still working; share on saved cards; no request contains the payload; axe 0 violations; 320–430px and 150/200% text). **Finding:** jsQR cannot read QR version 23 (ZXing reads it and all other versions exactly). **Finding:** intermittent `toBlob` stalls on the GPU-less runner, fixed with CPU-backed canvases plus a 15 s watchdog.

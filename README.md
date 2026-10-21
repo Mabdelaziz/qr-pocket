@@ -2,7 +2,7 @@
 
 Create. Save. Share. — a tiny, private, offline-first QR code generator (installable PWA) for Android Chrome and modern desktop browsers. No accounts, backend, tracking or runtime network requests.
 
-**Status:** Phase 2 — QR generation (SPEC-001) implemented and **verified by cloud CI** (80 unit + 41 browser tests, 12.91 KB gzip; see `docs/PROGRESS.md`). Not yet tested on a physical phone. Saving, export/share, PWA install/offline and release are later phases. See `docs/PROGRESS.md`.
+**Status:** Phase 3 — QR generation, local library (Saved), PNG export and sharing implemented and **verified by cloud CI** (180 unit + 91 browser tests, 21.44 KB gzip; see `docs/PROGRESS.md`). Offline/install (Phase 4) is not built yet; not yet tested on a physical phone. Saving, export/share, PWA install/offline and release are later phases. See `docs/PROGRESS.md`.
 
 ## Where things are
 - Product and design: `docs/PRODUCT_SPEC.md`, `docs/design/SCREEN_SPECS.md`, `docs/design/mockups/index.html`
