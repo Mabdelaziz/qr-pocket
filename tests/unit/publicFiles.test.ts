@@ -1,10 +1,11 @@
 // SPEC-005 AC6/AC7: what may be published, the build stamp, and the live-site check. Secret-like strings are assembled
 // at run time so this file itself never contains anything a secret scanner would flag.
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { checkLive } from '../../scripts/live-check.mjs';
+import { applyKillSwitch, KILL_SWITCH, MARKER } from '../../scripts/apply-kill-switch.mjs';
 import { buildStamp, scanFiles, writeStamp, type PublicFile } from '../../scripts/public-files.mjs';
 
 const SHA = 'a'.repeat(40);
@@ -54,6 +55,14 @@ describe('SPEC-005 AC6: public-file scan', () => {
     expect(scanFiles([...good, file('assets/x.js', `"${path}"`)]).join('\n')).toMatch(/x\.js: contains a local file path/);
   });
 
+  it('rejects secrets in file names and in image bytes, and protocol-relative external URLs', () => {
+    expect(scanFiles([...good, file('assets/' + 'AKIA' + 'Q'.repeat(16) + '.js', '')]).join('\n')).toMatch(/file name looks like a secret/);
+    expect(scanFiles([...good, file('assets/' + 'someone' + '@' + 'example' + '.com.png', 'x')]).join('\n')).toMatch(/file name contains an e-mail/);
+    expect(scanFiles([...good, { path: 'icons/a.png', data: Buffer.concat([Buffer.from([137, 80, 78, 71]), Buffer.from('ghp_' + 'A1b2'.repeat(9))]) }]).join('\n')).toMatch(/a\.png: the file bytes look like a secret/);
+    expect(scanFiles([...good, file('index.html', '<img src="//cdn.example/x.png">')]).join('\n')).toMatch(/protocol-relative/);
+    expect(scanFiles([...good, file('assets/a.css', 'a{background:url(//cdn.example/x.png)}')]).join('\n')).toMatch(/protocol-relative/);
+  });
+
   it('rejects an e-mail address', () => {
     expect(scanFiles([...good, file('index.html', 'contact ' + 'someone' + '@' + 'example' + '.com')]).join('\n')).toMatch(/index\.html: contains an e-mail/);
   });
@@ -99,6 +108,37 @@ describe('SPEC-005 AC6: build stamp', () => {
     writeStamp(dir, { GITHUB_SHA: SHA, GITHUB_REF: 'refs/heads/main', GITHUB_RUN_ID: '7' });
     const text = readFileSync(join(dir, 'version.json'), 'utf8');
     expect(scanFiles([file('version.json', text)], { expectedCommit: SHA })).toEqual([]);
+  });
+});
+
+describe('SPEC-005: emergency kill-switch publishing', () => {
+  const dirs: string[] = [];
+  afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+  const project = (withMarker: boolean): string => {
+    const root = mkdtempSync(join(tmpdir(), 'kill-'));
+    dirs.push(root);
+    mkdirSync(join(root, 'dist'), { recursive: true });
+    mkdirSync(join(root, 'docs/recovery'), { recursive: true });
+    mkdirSync(join(root, 'recovery'), { recursive: true });
+    writeFileSync(join(root, 'dist/sw.js'), 'normal worker');
+    writeFileSync(join(root, 'dist/version.json'), JSON.stringify({ app: 'qr-pocket', commit: SHA, ref: 'r', run: '1' }));
+    writeFileSync(join(root, KILL_SWITCH), 'kill switch worker');
+    if (withMarker) writeFileSync(join(root, MARKER), '');
+    return root;
+  };
+
+  it('does nothing without the marker file (the tested bytes are published unchanged)', () => {
+    const root = project(false);
+    expect(applyKillSwitch({ root })).toBe(false);
+    expect(readFileSync(join(root, 'dist/sw.js'), 'utf8')).toBe('normal worker');
+    expect(JSON.parse(readFileSync(join(root, 'dist/version.json'), 'utf8')).recovery).toBeUndefined();
+  });
+
+  it('with the marker, publishes the emergency worker and says so in version.json', () => {
+    const root = project(true);
+    expect(applyKillSwitch({ root })).toBe(true);
+    expect(readFileSync(join(root, 'dist/sw.js'), 'utf8')).toBe('kill switch worker');
+    expect(JSON.parse(readFileSync(join(root, 'dist/version.json'), 'utf8')).recovery).toBe('kill-switch');
   });
 });
 
@@ -151,6 +191,19 @@ describe('SPEC-005 AC7: live-site check', () => {
     expect(problems).toMatch(/manifest: scope is \//);
     expect(problems).toMatch(/sw\.js: HTTP 404/);
     expect(problems).toMatch(/icon-512\.png: HTTP 404/);
+  });
+
+  it('never requests another site, even if the manifest points to one', async () => {
+    const bad = healthy();
+    bad['manifest.webmanifest'] = { body: { ...manifest, icons: [{ src: '//elsewhere.example/icon.png', sizes: '512x512', purpose: 'any' }] } };
+    const requested: string[] = [];
+    const spy = ((input: URL | RequestInfo, init?: RequestInit) => {
+      requested.push(new URL(String(input)).host);
+      return siteFetch(bad)(input, init);
+    }) as typeof fetch;
+    const problems = (await checkLive({ baseUrl: BASE, commit: SHA, fetchImpl: spy })).join('\n');
+    expect(problems).toMatch(/points to another site/);
+    expect(new Set(requested)).toEqual(new Set(['example.github.io']));
   });
 
   it('reports a network failure instead of throwing', async () => {

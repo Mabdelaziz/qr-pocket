@@ -26,6 +26,8 @@ const SECRET_PATTERNS = [
 const LOCAL_PATH_PATTERNS = [/[A-Za-z]:\\(?:Users|ClaudProjects)\\/, /\/home\/(?:runner|[a-z][\w-]*)\//, /\/Users\/[A-Za-z][\w.-]*\//];
 const EMAIL = /\b[\w.+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}\b/;
 const URL_PATTERN = /(?:https?|wss?|ftp):\/\/[^\s"'`)<>\\]+/gi;
+// A URL that inherits the page's scheme but names another host (src="//host/x", url(//host/x)).
+const PROTOCOL_RELATIVE = /(?:src|href|action|poster|srcset|url\()\s*=?\s*["']?\/\/[A-Za-z0-9-]+\.[A-Za-z]/i;
 const FULL_SHA = /^[0-9a-f]{40}$/;
 
 /** `files`: [{ path: 'assets/x.js', data: Buffer }] with forward-slash paths relative to dist. Returns problems (empty = OK). */
@@ -39,11 +41,21 @@ export function scanFiles(files, { expectedCommit, requireStamp = true } = {}) {
     if (ext === '.map') problems.push(`${path}: source maps must not be published`);
     else if (!ALLOWED_EXTENSIONS.includes(ext)) problems.push(`${path}: file type "${ext || '(none)'}" is not allowed`);
     if (ext === '.json' && path !== 'version.json') problems.push(`${path}: only version.json may be published as JSON`);
-    if (!TEXT_EXTENSIONS.has(ext)) continue;
+    // The file NAME is public too (it is part of the address).
+    for (const [label, pattern] of SECRET_PATTERNS) if (pattern.test(path)) problems.push(`${path}: the file name looks like a secret (${label})`);
+    if (EMAIL.test(path)) problems.push(`${path}: the file name contains an e-mail address`);
+    if (!TEXT_EXTENSIONS.has(ext)) {
+      // Images: a credential or local path appended to or embedded in the bytes (metadata chunks, trailing data) is still published.
+      const raw = data.toString('latin1');
+      for (const [label, pattern] of SECRET_PATTERNS) if (pattern.test(raw)) problems.push(`${path}: the file bytes look like a secret (${label})`);
+      for (const pattern of LOCAL_PATH_PATTERNS) if (pattern.test(raw)) problems.push(`${path}: the file bytes contain a local file path (${pattern})`);
+      continue;
+    }
     const text = data.toString('utf8');
     for (const [label, pattern] of SECRET_PATTERNS) if (pattern.test(text)) problems.push(`${path}: looks like a secret (${label})`);
     for (const pattern of LOCAL_PATH_PATTERNS) if (pattern.test(text)) problems.push(`${path}: contains a local file path (${pattern})`);
     if (EMAIL.test(text)) problems.push(`${path}: contains an e-mail address`);
+    if (PROTOCOL_RELATIVE.test(text)) problems.push(`${path}: contains a protocol-relative external URL`);
     for (const url of text.match(URL_PATTERN) ?? []) {
       if (!URL_ALLOW_LIST.some((entry) => (entry.endsWith('/') ? url.startsWith(entry) : url === entry))) urls.add(`${path}: ${url}`);
     }

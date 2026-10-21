@@ -158,7 +158,8 @@ describe('SPEC-005 AC1/AC5: the deployed bytes are the verified bytes', () => {
     expect(order('npm run build ')).toBeLessThan(order('npm run stamp'));
     expect(order('npm run stamp')).toBeLessThan(order('npm run test:e2e'));
     expect(order('npm run check:public')).toBeLessThan(order('npm run test:e2e'));
-    expect(order('npm run test:e2e')).toBeLessThan(order('actions/upload-pages-artifact'));
+    expect(order('npm run test:e2e')).toBeLessThan(order('npm run recovery'));
+    expect(order('npm run recovery')).toBeLessThan(order('actions/upload-pages-artifact'));
   });
 
   it('the Pages artifact is uploaded only if every earlier step succeeded, from dist, for one day', () => {

@@ -65,6 +65,10 @@ jobs:
         if: ${{ !cancelled() }}
         timeout-minutes: 25
 
+      # Normally a no-op. Only if recovery/KILL_SWITCH is committed (emergency, docs/SW_RECOVERY.md) does it swap sw.js.
+      - run: npm run recovery
+        if: ${{ success() }}
+
       # The exact bytes that passed every check above (e2e ran on this dist). deploy.yml publishes THIS artifact; on pull
       # requests it is a dry run that proves the Pages packaging works. Only after ALL previous steps succeeded.
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

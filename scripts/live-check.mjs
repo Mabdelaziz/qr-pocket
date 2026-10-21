@@ -15,6 +15,10 @@ export async function checkLive({ baseUrl, commit, runId, fetchImpl = fetch }) {
 
   const get = async (path) => {
     const url = new URL(path, base);
+    if (url.origin !== base.origin) {
+      problems.push(`${path}: points to another site (${url.origin}); not requested`);
+      return undefined;
+    }
     url.searchParams.set('check', String(Date.now())); // bypass the host cache for this request only
     try {
       return await fetchImpl(url, { headers: { 'Cache-Control': 'no-cache' }, redirect: 'manual', signal: AbortSignal.timeout(10_000) });

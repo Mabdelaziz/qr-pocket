@@ -50,7 +50,7 @@ The site is static, so a rollback is "publish the previous good version".
 1. **Normal rollback (about 10 minutes).** Open a pull request that reverts the faulty commit (`git revert <sha>`). CI and branch protection apply as always. Merge it, then run *Deploy* on `main`. The check-live job confirms the older commit is live.
 2. **Faster option.** If the previous good commit is still on `main`'s history and the revert would be large, a revert of the merge commit gives the same result.
 3. **Installed apps** treat a rollback like any update: they show "A new version is ready" with *Reload* or *Later*. Saved QR codes are never touched (they live in the browser's IndexedDB, not in the site files).
-4. **Emergency: a broken service worker keeps serving a bad version.** Follow `docs/SW_RECOVERY.md`: deploy the kill-switch worker (`docs/recovery/kill-switch-sw.js`) as `sw.js`. It deletes only this app's caches, unregisters itself and leaves saved codes alone. Then deploy a good build.
+4. **Emergency: a broken service worker keeps serving a bad version.** Follow `docs/SW_RECOVERY.md`: a pull request adds the marker file `recovery/KILL_SWITCH`; after merge, *Deploy* publishes the kill-switch worker (`docs/recovery/kill-switch-sw.js`) as `sw.js` (CI swaps it in after the tests; `version.json` shows `"recovery": "kill-switch"`). It deletes only this app's caches, unregisters itself and leaves saved codes alone. Then deploy a good build.
 5. **Take the site offline completely.** Settings → Pages → *Unpublish site*. (Installed copies keep working from their cache until the browser drops them.)
 
 GitHub keeps the previous deployment's artifact for one day only (`retention-days: 1`); rollback is therefore by commit, not by artifact.

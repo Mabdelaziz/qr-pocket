@@ -24,6 +24,7 @@ SPEC-004 (PWA build). ADR-008, ADR-017, ADR-018 (this phase). Official actions o
 - A failing check anywhere stops the chain: no artifact is uploaded (`if: success()`), so nothing can be deployed from a failed run.
 - Dispatching `deploy.yml` on any branch other than `main` fails immediately at `guard`; the `github-pages` environment branch policy restricted to `main` is the mandatory real barrier (a dispatched branch uses its own workflow file, so `guard` alone is not enough); setup in `docs/DEPLOYMENT.md`.
 - The deployed bytes are the verified bytes: the artifact is produced inside the verified run, after the e2e tests ran on the same `dist` (including the stamp).
+- Emergency worker: if `recovery/KILL_SWITCH` is committed, CI swaps `dist/sw.js` for the kill-switch worker after the tests (the only case where published bytes differ from tested bytes) and marks `version.json`; otherwise the step does nothing.
 - Rollback: revert the faulty commit through a normal pull request (CI + protection apply), merge, dispatch the deploy again (guarded and verified); emergency: kill-switch worker (`docs/SW_RECOVERY.md`). Installed apps pick up the rollback as an ordinary update (prompt-based).
 - Edge: Pages disabled → `configure-pages` fails and nothing is published; one waiting dispatch queues behind a running one (a third replaces the waiting second); hosting caches (`max-age=600`) can delay first-time visitors by ~10 minutes, installed apps see updates at their next update check.
 
