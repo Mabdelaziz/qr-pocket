@@ -1,4 +1,5 @@
 import { encode, MAX_BYTES, type Ecc, type QrMatrix } from '../qr/encode';
+import type { PanelModel } from './panels';
 
 /** Everything the Generate screen needs to render, derived purely from state (SPEC-001). */
 export interface GenerateState {
@@ -6,15 +7,6 @@ export interface GenerateState {
   readonly ecc: Ecc;
   /** True once the user has typed; blank-input messages only show after interaction. */
   readonly touched: boolean;
-}
-
-export interface PanelModel {
-  readonly kind: 'warn' | 'error';
-  /** Stable identity: the DOM panel is only rebuilt (and re-announced) when this changes. */
-  readonly key: string;
-  readonly title: string;
-  readonly body: string;
-  readonly action?: { readonly id: 'use-low'; readonly label: string };
 }
 
 export type PreviewModel =
@@ -97,7 +89,7 @@ export function deriveView(state: GenerateState): ViewModel {
             key: 'too-long-medium',
             title: TEXT.tooLongMediumTitle,
             body: `${fmt(result.bytes)} bytes, limit ${fmt(MAX_BYTES.M)}. Low allows up to ${fmt(MAX_BYTES.L)} bytes but tolerates less damage to the printed code.`,
-            action: { id: 'use-low', label: TEXT.useLow },
+            actions: [{ id: 'use-low', label: TEXT.useLow }],
           },
           preview: { kind: 'none', label: TEXT.nonePreview },
           announce: `${TEXT.tooLongMediumTitle}. A Low option is available.`, // warning panel has no live role; announced here

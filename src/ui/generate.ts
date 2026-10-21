@@ -1,126 +1,134 @@
-import type { QrMatrix } from '../qr/encode';
+import { downloadBlob } from '../export/download';
+import { pngFilename } from '../export/filename';
+import { renderPngBlob } from '../export/png';
+import type { Ecc, QrMatrix } from '../qr/encode';
 import { drawQr } from '../render/canvas';
+import { shareImageFile } from '../share/share';
+import { defaultTitle } from '../store/titles';
+import { StoreError, type CodeStore, type SavedCode } from '../store/types';
 import { debounce } from '../util/debounce';
-import { deriveView, type GenerateState, type PanelModel, type ViewModel } from './model';
+import { announce } from './announce';
+import { byId, el, icon } from './dom';
+import { deriveView, type GenerateState } from './model';
+import { createPanelHost, type PanelModel } from './panels';
+import { afterDelete, canStartSave, contentKey, SAVE_IDLE, saveButtonState, type SaveButtonState, type SaveUi } from './saveState';
+import { storeErrorText } from './savedModel';
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
 const LIVE_DELAY_MS = 150;
 
-function byId<T extends HTMLElement>(id: string, type: new () => T): T {
-  const node = document.getElementById(id);
-  if (!(node instanceof type)) throw new Error(`#${id} is missing or has the wrong type`);
-  return node;
+function setBusy(button: HTMLElement, on: boolean): void {
+  if (on) button.setAttribute('aria-busy', 'true');
+  else button.removeAttribute('aria-busy');
 }
 
-function icon(name: string, cls: string): SVGSVGElement {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('class', cls);
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-  const use = document.createElementNS(SVG_NS, 'use');
-  use.setAttribute('href', `#i-${name}`);
-  svg.append(use);
-  return svg;
+export interface GenerateDeps {
+  readonly store: CodeStore;
+  /** Whether the browser can share image files; when false the Share button is hidden. */
+  readonly canShare: boolean;
 }
 
-/** Builds a status panel with DOM APIs only; user text never reaches here (messages are fixed strings + numbers). */
-function buildPanel(model: PanelModel): HTMLElement {
-  const panel = document.createElement('div');
-  panel.className = `panel p-${model.kind}`;
-  if (model.kind === 'error') panel.setAttribute('role', 'alert'); // warnings are announced via #sr-status (one channel)
-  panel.append(icon(model.kind === 'error' ? 'error' : 'warn', 'ico pico'));
-
-  const body = document.createElement('div');
-  body.className = 'pbody';
-  const title = document.createElement('p');
-  title.className = 'ptitle';
-  const prefix = document.createElement('span');
-  prefix.className = 'sr';
-  prefix.textContent = model.kind === 'error' ? 'Error: ' : 'Warning: ';
-  title.append(prefix, model.title);
-  body.append(title);
-  if (model.body) {
-    const text = document.createElement('p');
-    text.className = 'pdetail';
-    text.setAttribute('aria-live', 'off'); // byte counts change while typing; do not re-announce them
-    text.textContent = model.body;
-    body.append(text);
-  }
-  if (model.action) {
-    const actions = document.createElement('div');
-    actions.className = 'pact';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'btn btn-tonal';
-    button.dataset['action'] = model.action.id;
-    button.textContent = model.action.label;
-    actions.append(button);
-    body.append(actions);
-  }
-  panel.append(body);
-  return panel;
+export interface GenerateApi {
+  /** Load a saved item into the editor (Save then shows "Saved" until the content changes). */
+  load(item: Pick<SavedCode, 'id' | 'payload' | 'ecc'>): void;
+  /** A saved record was deleted elsewhere; resets the Save state if it referred to that record. */
+  onDeleted(id: string): void;
+  focusInput(): void;
+  /** Redraw the preview at the size of the now-visible container (call when the Generate view is shown). */
+  refresh(): void;
 }
 
-export function initGenerate(): void {
+interface ActionNote {
+  /** The content the note belongs to; it disappears as soon as the text or level changes. */
+  readonly contentKey: string;
+  readonly panel: PanelModel;
+}
+
+export function initGenerate(deps: GenerateDeps): GenerateApi {
   const input = byId('text', HTMLTextAreaElement);
   const counter = byId('count', HTMLElement);
   const hint = byId('hint', HTMLElement);
   const clear = byId('clear', HTMLButtonElement);
   const eccRow = byId('ecc-low', HTMLElement);
   const back = byId('ecc-back', HTMLButtonElement);
-  const panelHost = byId('panel-host', HTMLElement);
   const previewHost = byId('preview', HTMLElement);
-  const srStatus = byId('sr-status', HTMLElement);
+  const saveButton = byId('save', HTMLButtonElement);
+  const downloadButton = byId('download', HTMLButtonElement);
+  const shareButton = byId('share', HTMLButtonElement);
+  const shareNote = byId('share-note', HTMLElement);
+  const validationPanel = createPanelHost(byId('panel-host', HTMLElement));
+  const actionHost = byId('action-panel', HTMLElement);
+  const actionPanel = createPanelHost(actionHost);
 
   // Preview building blocks are created once and swapped in/out.
   const canvas = document.createElement('canvas');
   canvas.setAttribute('role', 'img');
   canvas.setAttribute('aria-label', 'QR code for the text you entered');
-  const qrBox = document.createElement('div');
-  qrBox.className = 'pv';
+  const qrBox = el('div', 'pv');
   qrBox.append(canvas);
-  const emptyBox = document.createElement('div');
-  emptyBox.className = 'pvempty';
-  const emptyText = document.createElement('p');
+  const emptyBox = el('div', 'pvempty');
+  const emptyText = el('p');
   emptyBox.append(icon('gen', 'ico big'), emptyText);
 
   // Restore-safe: a browser may re-populate the field (reload / back-forward cache).
   let state: GenerateState = { text: input.value, ecc: 'M', touched: input.value.length > 0 };
-  let shownPanelKey = '';
+  let saveUi: SaveUi = SAVE_IDLE;
+  let note: ActionNote | null = null;
+  let busy: 'download' | 'share' | null = null;
+  let hasQr = false;
+  let currentMatrix: QrMatrix | null = null;
   let shownAnnounce = '';
   let shownPreview: 'qr' | 'text' | '' = '';
-  let currentMatrix: QrMatrix | null = null;
+  let shownSaveState: SaveButtonState | '' = '';
+
+  shareButton.hidden = !deps.canShare;
+  shareNote.hidden = deps.canShare;
+
+  const keyNow = (): string => contentKey(state.text, state.ecc);
 
   function drawCurrent(): void {
     if (!currentMatrix) return;
+    if (qrBox.clientWidth === 0) return; // the view is hidden (e.g. Open from Saved): draw when it is shown, see refresh()
     const cs = getComputedStyle(qrBox);
     const inner = qrBox.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     drawQr(canvas, currentMatrix, inner, window.devicePixelRatio || 1);
   }
 
-  function renderPanel(panel: PanelModel | null): void {
-    const key = panel ? panel.key : '';
-    if (key === shownPanelKey) {
-      // Same message: keep the element (no rebuild, no re-announce) but refresh the numbers in its detail line.
-      const detail = panelHost.querySelector('.pdetail');
-      if (panel && detail && detail.textContent !== panel.body) detail.textContent = panel.body;
-      return;
+  function renderSaveButton(current: SaveButtonState): void {
+    if (current !== shownSaveState) {
+      shownSaveState = current;
+      saveButton.classList.toggle('btn-done', current === 'saved');
+      saveButton.classList.toggle('btn-primary', current !== 'saved');
+      if (current === 'saved') saveButton.replaceChildren(icon('ok', 'ico'), 'Saved');
+      else saveButton.replaceChildren(current === 'saving' ? 'Saving…' : 'Save');
     }
-    shownPanelKey = key;
-    panelHost.replaceChildren(...(panel ? [buildPanel(panel)] : []));
+    setBusy(saveButton, current === 'saving');
   }
 
-  function renderPreview(vm: ViewModel): void {
-    if (vm.preview.kind === 'qr') {
+  function renderActions(): void {
+    const key = keyNow();
+    const saveState = saveButtonState(saveUi, key);
+    renderSaveButton(saveState);
+    // Not activatable (and muted, without explanatory text) when there is nothing to act on; the saving and
+    // saved states are inactive too, so a repeat press does nothing (no accidental duplicate records).
+    saveButton.setAttribute('aria-disabled', String(!canStartSave(saveUi, key, hasQr)));
+    downloadButton.setAttribute('aria-disabled', String(!hasQr || busy !== null));
+    shareButton.setAttribute('aria-disabled', String(!hasQr || busy !== null));
+    setBusy(downloadButton, busy === 'download');
+    setBusy(shareButton, busy === 'share');
+    actionPanel.show(note && note.contentKey === key ? note.panel : null);
+  }
+
+  function renderPreview(matrix: QrMatrix | null, label: string): void {
+    if (matrix) {
       if (shownPreview !== 'qr') {
         previewHost.replaceChildren(qrBox);
         shownPreview = 'qr';
       }
-      currentMatrix = vm.preview.matrix;
+      currentMatrix = matrix;
       drawCurrent();
     } else {
       currentMatrix = null;
-      emptyText.textContent = vm.preview.label;
+      emptyText.textContent = label;
       if (shownPreview !== 'text') {
         previewHost.replaceChildren(emptyBox);
         shownPreview = 'text';
@@ -136,16 +144,112 @@ export function initGenerate(): void {
     eccRow.hidden = !vm.eccLowVisible;
     if (vm.invalid) input.setAttribute('aria-invalid', 'true');
     else input.removeAttribute('aria-invalid');
-    renderPanel(vm.panel);
-    renderPreview(vm);
+    validationPanel.show(vm.panel);
+    hasQr = vm.preview.kind === 'qr';
+    renderPreview(vm.preview.kind === 'qr' ? vm.preview.matrix : null, vm.preview.kind === 'qr' ? '' : vm.preview.label);
+    renderActions();
     if (vm.announce !== shownAnnounce) {
       shownAnnounce = vm.announce;
-      srStatus.textContent = vm.announce;
+      announce(vm.announce);
     }
   }
 
   const renderLive = debounce(render, LIVE_DELAY_MS);
 
+  /** Actions must see the latest typing, not the last debounced render. */
+  function syncNow(): void {
+    renderLive.cancel();
+    state = { ...state, text: input.value };
+    render();
+  }
+
+  function setNote(panel: PanelModel | null, forKey: string = keyNow()): void {
+    note = panel ? { contentKey: forKey, panel } : null;
+  }
+
+  // ---- Save
+  async function doSave(): Promise<void> {
+    syncNow();
+    const key = keyNow();
+    if (!canStartSave(saveUi, key, hasQr)) return; // not shown, already saving, or already saved: ignore (no duplicates)
+    const { text, ecc } = state;
+    saveUi = { kind: 'saving', key };
+    setNote(null);
+    renderActions();
+    try {
+      const record = await deps.store.add({ payload: text, ecc, source: 'typed' });
+      if (saveUi.kind === 'saving' && saveUi.key === key) saveUi = { kind: 'saved', key, id: record.id };
+      setNote({ kind: 'success', key: 'saved', title: 'Saved to this device', body: 'Clearing browser data may erase saved codes — there’s no backup.' }, key);
+      announce('Saved to this device.');
+    } catch (error) {
+      if (saveUi.kind === 'saving' && saveUi.key === key) saveUi = SAVE_IDLE;
+      const text2 = storeErrorText('save', error instanceof StoreError ? error.kind : 'unknown');
+      setNote(
+        { kind: 'error', key: 'save-failed', title: text2.title, body: text2.body, actions: [{ id: 'retry-save', label: 'Try again' }] },
+        key,
+      );
+    }
+    renderActions();
+  }
+
+  // ---- Download / Share
+  async function makeFile(matrix: QrMatrix, text: string): Promise<{ blob: Blob; filename: string }> {
+    const now = new Date();
+    return { blob: await renderPngBlob(matrix), filename: pngFilename(defaultTitle(text, now), now) };
+  }
+
+  async function doDownload(): Promise<void> {
+    syncNow();
+    const matrix = currentMatrix;
+    if (!hasQr || !matrix || busy) return;
+    const key = keyNow();
+    const text = state.text;
+    busy = 'download';
+    setNote(null);
+    renderActions();
+    try {
+      const { blob, filename } = await makeFile(matrix, text);
+      downloadBlob(blob, filename);
+    } catch {
+      setNote(
+        { kind: 'error', key: 'export-failed', title: 'Couldn’t create the PNG', body: 'Something went wrong while creating the image.', actions: [{ id: 'retry-download', label: 'Try again' }] },
+        key,
+      );
+    }
+    busy = null;
+    renderActions();
+  }
+
+  async function doShare(): Promise<void> {
+    syncNow();
+    const matrix = currentMatrix;
+    if (!deps.canShare || !hasQr || !matrix || busy) return;
+    const key = keyNow();
+    const text = state.text;
+    busy = 'share';
+    setNote(null);
+    renderActions();
+    try {
+      const { blob, filename } = await makeFile(matrix, text);
+      await shareImageFile(new File([blob], filename, { type: 'image/png' })); // 'cancelled' is not an error
+    } catch {
+      setNote({ kind: 'error', key: 'share-failed', title: 'Couldn’t open the share sheet', body: 'You can download the image instead.' }, key);
+    }
+    busy = null;
+    renderActions();
+  }
+
+  const guard = (button: HTMLButtonElement, action: () => Promise<void>): void => {
+    button.addEventListener('click', () => {
+      if (button.getAttribute('aria-disabled') === 'true') return;
+      void action();
+    });
+  };
+  guard(saveButton, doSave);
+  guard(downloadButton, doDownload);
+  guard(shareButton, doShare);
+
+  // ---- editing
   input.addEventListener('input', () => {
     state = { ...state, text: input.value, touched: true };
     renderLive();
@@ -159,21 +263,36 @@ export function initGenerate(): void {
     input.focus();
   });
 
-  panelHost.addEventListener('click', (event) => {
+  const useLow = (ecc: Ecc): void => {
+    renderLive.cancel();
+    state = { ...state, text: input.value, ecc };
+    render();
+  };
+
+  byId('panel-host', HTMLElement).addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof Element) || !target.closest('[data-action="use-low"]')) return;
-    renderLive.cancel();
-    state = { ...state, text: input.value, ecc: 'L' };
-    render();
+    useLow('L');
     back.focus(); // the pressed button is gone; keep focus in the flow without opening the keyboard
   });
 
   back.addEventListener('click', () => {
-    renderLive.cancel();
-    state = { ...state, text: input.value, ecc: 'M' };
-    render();
-    const next = panelHost.querySelector<HTMLElement>('[data-action="use-low"]');
+    useLow('M');
+    const next = byId('panel-host', HTMLElement).querySelector<HTMLElement>('[data-action="use-low"]');
     (next ?? input).focus();
+  });
+
+  actionHost.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const action = target.closest<HTMLElement>('[data-action]')?.dataset['action'];
+    if (action === 'retry-save') {
+      saveButton.focus(); // the pressed button is removed when the panel changes
+      void doSave();
+    } else if (action === 'retry-download') {
+      downloadButton.focus();
+      void doDownload();
+    }
   });
 
   // Keep the QR crisp when the container width changes (rotation, window resize).
@@ -185,4 +304,26 @@ export function initGenerate(): void {
   });
 
   render();
+
+  return {
+    load(item) {
+      renderLive.cancel();
+      state = { text: item.payload, ecc: item.ecc, touched: true };
+      input.value = item.payload;
+      saveUi = { kind: 'saved', key: contentKey(item.payload, item.ecc), id: item.id };
+      note = null;
+      render();
+    },
+    onDeleted(id) {
+      saveUi = afterDelete(saveUi, id);
+      if (saveUi.kind !== 'saved') note = null;
+      renderActions();
+    },
+    focusInput() {
+      input.focus();
+    },
+    refresh() {
+      drawCurrent();
+    },
+  };
 }

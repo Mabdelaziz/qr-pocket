@@ -10,47 +10,106 @@
   <script type="module" src="/src/main.ts"></script>
 </head>
 <body>
-
   <div class="app">
     <header class="hdr">
-    <svg class="sprite" aria-hidden="true" focusable="false">
-      <defs>
-        <symbol id="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#155EEF"/><g fill="#fff"><path d="M6 6h7v7H6zM19 6h7v7h-7zM6 19h7v7H6z" opacity=".95"/><path d="M19 19h3v3h-3zM23 23h3v3h-3zM23 19h3v2h-3z"/></g><g fill="#155EEF"><rect x="8" y="8" width="3" height="3"/><rect x="21" y="8" width="3" height="3"/><rect x="8" y="21" width="3" height="3"/></g></symbol>
-        <symbol id="i-gen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></symbol>
-        <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.01"/></symbol>
-        <symbol id="i-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4v.01"/></symbol>
-        <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.4v.01"/></symbol>
-      </defs>
-    </svg>
+      <svg class="sprite" aria-hidden="true" focusable="false">
+        <defs>
+          <symbol id="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#155EEF"/><g fill="#fff"><path d="M6 6h7v7H6zM19 6h7v7h-7zM6 19h7v7H6z" opacity=".95"/><path d="M19 19h3v3h-3zM23 23h3v3h-3zM23 19h3v2h-3z"/></g><g fill="#155EEF"><rect x="8" y="8" width="3" height="3"/><rect x="21" y="8" width="3" height="3"/><rect x="8" y="21" width="3" height="3"/></g></symbol>
+          <symbol id="i-gen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></symbol>
+          <symbol id="i-saved" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4.5L5 21V4.5a1 1 0 0 1 1-1z"/></symbol>
+          <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.01"/></symbol>
+          <symbol id="i-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4v.01"/></symbol>
+          <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.4v.01"/></symbol>
+          <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.4 2.8 2.8L16.4 9.6"/></symbol>
+          <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14"/></symbol>
+          <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 13v6.5h14V13"/></symbol>
+          <symbol id="i-rename" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5l-4-4L4 16z"/></symbol>
+          <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V4h5v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></symbol>
+        </defs>
+      </svg>
       <span class="brand"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg>QR Pocket</span>
     </header>
 
     <main id="main">
-      <h1>Create a QR code</h1>
+      <!-- ================= Generate (SPEC-001, SPEC-002 save, SPEC-003 export) ================= -->
+      <section id="view-generate" class="view" aria-labelledby="h-generate">
+        <h1 id="h-generate" tabindex="-1">Create a QR code</h1>
 
-      <section class="card" aria-label="Your text">
-        <label for="text">Text or link</label>
-        <textarea id="text" rows="3" dir="auto" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" placeholder="Type or paste text or a link" aria-describedby="count hint panel-host"></textarea>
-        <div class="metarow">
-          <p id="count" class="meta"></p>
-          <button type="button" id="clear" class="link" hidden>Clear</button>
+        <section class="card" aria-label="Your text">
+          <label for="text">Text or link</label>
+          <textarea id="text" rows="3" dir="auto" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" placeholder="Type or paste text or a link" aria-describedby="count hint panel-host"></textarea>
+          <div class="metarow">
+            <p id="count" class="meta"></p>
+            <button type="button" id="clear" class="link" hidden>Clear</button>
+          </div>
+          <p id="hint" class="hint">Encodes exactly what you type. Links aren&rsquo;t shortened or checked.</p>
+        </section>
+
+        <div id="ecc-low" class="eccrow" hidden>
+          <svg class="ico sm" aria-hidden="true" focusable="false"><use href="#i-info"/></svg>
+          <span><strong>Error correction: Low</strong></span>
+          <button type="button" id="ecc-back" class="link">Back to Medium</button>
         </div>
-        <p id="hint" class="hint">Encodes exactly what you type. Links aren&rsquo;t shortened or checked.</p>
+
+        <div id="panel-host"></div>
+
+        <div id="preview" class="pvwrap"></div>
+
+        <div class="acts" id="actions">
+          <button type="button" id="save" class="btn btn-primary btn-lg" aria-disabled="true">Save</button>
+          <div class="row2">
+            <button type="button" id="download" class="btn btn-tonal" aria-disabled="true"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-download"/></svg>Download PNG</button>
+            <button type="button" id="share" class="btn btn-tonal" aria-disabled="true"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-share"/></svg>Share</button>
+          </div>
+          <p id="share-note" class="hint center" hidden><svg class="ico sm" aria-hidden="true" focusable="false"><use href="#i-info"/></svg>Sharing files isn&rsquo;t supported in this browser.</p>
+        </div>
+        <div id="action-panel"></div>
       </section>
 
-      <div id="ecc-low" class="eccrow" hidden>
-        <svg class="ico sm" aria-hidden="true" focusable="false"><use href="#i-info"/></svg>
-        <span><strong>Error correction: Low</strong></span>
-        <button type="button" id="ecc-back" class="link">Back to Medium</button>
-      </div>
-
-      <div id="panel-host"></div>
-
-      <div id="preview" class="pvwrap"></div>
+      <!-- ================= Saved (SPEC-002) ================= -->
+      <section id="view-saved" class="view" aria-labelledby="h-saved" hidden>
+        <div class="ptitlerow">
+          <h1 id="h-saved" tabindex="-1">Saved codes</h1>
+          <p id="saved-count" class="meta"></p>
+        </div>
+        <div id="saved-panel"></div>
+        <div id="saved-body"></div>
+        <p id="saved-notice" class="notice" hidden><svg class="ico sm" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><span>Saved on this device only. Clearing browser data may erase these codes &mdash; there&rsquo;s no backup.</span></p>
+      </section>
 
       <p id="sr-status" class="sr" role="status"></p>
       <noscript><p class="panel p-error">QR Pocket needs JavaScript to create QR codes on your device.</p></noscript>
     </main>
+
+    <nav class="tabs" aria-label="Main">
+      <a id="tab-generate" href="#/generate" aria-current="page"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-gen"/></svg><span>Generate</span></a>
+      <a id="tab-saved" href="#/saved"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-saved"/></svg><span>Saved</span></a>
+    </nav>
   </div>
+
+  <!-- Native dialogs (showModal): top layer, focus trap, Esc to close, inert background -->
+  <dialog id="dlg-rename" aria-labelledby="rename-heading">
+    <form id="rename-form" novalidate>
+      <h2 id="rename-heading">Rename code</h2>
+      <label for="rename-input">Title</label>
+      <input id="rename-input" type="text" maxlength="80" dir="auto" autocomplete="off" spellcheck="false">
+      <div id="rename-panel"></div>
+      <div class="dact">
+        <button type="button" id="rename-cancel" class="btn btn-tonal">Cancel</button>
+        <button type="submit" id="rename-save" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-delete" aria-labelledby="delete-heading" aria-describedby="delete-text">
+    <div class="dicon"><svg class="ico big" aria-hidden="true" focusable="false"><use href="#i-trash"/></svg></div>
+    <h2 id="delete-heading">Delete this code?</h2>
+    <p id="delete-text">&ldquo;<bdi id="delete-title"></bdi>&rdquo; will be removed from this device. This can&rsquo;t be undone.</p>
+    <div id="delete-panel"></div>
+    <div class="dact">
+      <button type="button" id="delete-cancel" class="btn btn-tonal" autofocus>Cancel</button>
+      <button type="button" id="delete-confirm" class="btn btn-danger">Delete</button>
+    </div>
+  </dialog>
 </body>
 </html>

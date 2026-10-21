@@ -39,7 +39,7 @@ describe('SPEC-001: Generate view model', () => {
     const vm = deriveView({ text: 'a'.repeat(2400), ecc: 'M', touched: true });
     expect(vm.preview.kind).toBe('none');
     expect(vm.invalid).toBe(true);
-    expect(vm.panel).toMatchObject({ kind: 'warn', key: 'too-long-medium', action: { id: 'use-low', label: TEXT.useLow } });
+    expect(vm.panel).toMatchObject({ kind: 'warn', key: 'too-long-medium', actions: [{ id: 'use-low', label: TEXT.useLow }] });
     expect(vm.counter).toBe('2,400 / 2,331 bytes · Medium');
     expect(vm.eccLowVisible).toBe(false);
     expect(vm.announce).toContain(TEXT.tooLongMediumTitle); // warning has no live role; announced via the status region
@@ -60,7 +60,7 @@ describe('SPEC-001: Generate view model', () => {
       const vm = deriveView({ text: 'a'.repeat(3100), ecc, touched: true });
       expect(vm.preview.kind).toBe('none');
       expect(vm.panel).toMatchObject({ kind: 'error', key: 'too-long' });
-      expect(vm.panel?.action).toBeUndefined();
+      expect(vm.panel?.actions).toBeUndefined();
       expect(vm.counter).toBe('3,100 / 2,953 bytes');
     }
   });
