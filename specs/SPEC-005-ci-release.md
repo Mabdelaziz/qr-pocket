@@ -1,6 +1,6 @@
 # SPEC-005 — CI and gated deployment
 
-Status: PREPARED (2026-10-22). CI green on PR #5 (run 39689273793 @ 3caae69); deploy.yml NOT RUN. Pages stays disabled until the owner authorises the first test deployment.
+Status: PREPARED (2026-10-22). CI green on PR #5 (run 39691268609 @ ccab2bf); deploy.yml NOT RUN. Pages stays disabled until the owner authorises the first test deployment.
 
 ## Goal
 All verification runs on GitHub-hosted runners; publishing to GitHub Pages is a manual, gated, least-privilege workflow that can only deploy the verified `main` branch, deploys exactly the bytes that passed the tests, and can be rolled back.
@@ -46,4 +46,4 @@ Least privilege per job; no secrets; `GITHUB_TOKEN` only; no `pull_request_targe
 Automated (CI): `tests/unit/workflows.test.ts` (AC2–AC5, YAML pitfalls), `tests/unit/publicFiles.test.ts` and `stamp.test.ts` (AC6), the PR dry-run upload and `npm run check:public` (AC1, AC6). `deploy.yml` itself is NOT executed before authorisation; its jobs are verified statically and by GitHub's workflow parser (it must be listed as a valid workflow). Manual: first test deployment (after approval) + `docs/UAT_CHECKLIST.md` on the owner's laptop and phone.
 
 ## Completion evidence
-Run 39689273793 @ `3caae69` (PR #5): 265 unit + 135 browser passed, public-file scan and Pages-artifact dry run passed. Not run: deploy.yml, check-live on a real site, physical phone. See docs/PROGRESS.md.
+Run 39691268609 @ `ccab2bf` (PR #5): 269 unit + 135 browser passed, public-file scan and Pages-artifact dry run passed. Not run: deploy.yml, check-live on a real site, physical phone. See docs/PROGRESS.md.

@@ -1,6 +1,6 @@
 # QR Pocket — Test Plan
 
-Status: DRAFT (Phase 0). **T-001-* to T-004-* PASSED in cloud CI run 39673943074 on 2026-10-21 (210 unit + 131 browser tests: Chromium 121, Firefox 5, WebKit 5); Phase 5 (SPEC-005) preparation passed cloud CI run 39689273793 on 2026-10-22 (265 unit + 135 browser) but deploy.yml and the live check are NOT RUN, and all physical-phone UAT items (docs/ANDROID_TESTING.md) are still NOT RUN.** Nothing executes locally; "local testing" = source inspection only (diff review, type/logic reading, a11y/security read-through), recorded as *inspection*, never as a pass.
+Status: DRAFT (Phase 0). **T-001-* to T-004-* PASSED in cloud CI run 39673943074 on 2026-10-21 (210 unit + 131 browser tests: Chromium 121, Firefox 5, WebKit 5); Phase 5 (SPEC-005) preparation passed cloud CI run 39691268609 on 2026-10-22 (269 unit + 135 browser) but deploy.yml and the live check are NOT RUN, and all physical-phone UAT items (docs/ANDROID_TESTING.md) are still NOT RUN.** Nothing executes locally; "local testing" = source inspection only (diff review, type/logic reading, a11y/security read-through), recorded as *inspection*, never as a pass.
 
 ## 1. Environments
 | Where | What runs |
