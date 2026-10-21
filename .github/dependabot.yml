@@ -1,0 +1,37 @@
+# Controlled dependency updates: weekly, grouped, always via pull requests that must pass the `verify` check.
+# Nothing auto-merges. Majors are reviewed individually.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "deps"
+    groups:
+      dev-minor-and-patch:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+    ignore:
+      # typescript-eslint 8.x supports TypeScript <6.1 only (ADR-015): do not propose TypeScript majors.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # @types/node tracks Node majors; CI pins Node 22 (ADR-011).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]
