@@ -1,6 +1,6 @@
 # QR Pocket — Deployment guide (operator view)
 
-Status 2026-10-22: **prepared, not enabled.** GitHub Pages is off, `deploy.yml` has never been run, there are no releases, tags or deployments. Nothing below has been executed against real Pages yet; steps marked *untested* are written from GitHub's documentation and must be checked at the first authorised test deployment. Spec: `specs/SPEC-005-ci-release.md`; decision: ADR-018.
+Status 2026-10-22: **first UAT deployment is live** (commit `c42af96`, [run 39721994215](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39721994215)); Pages source, the `main`-only environment policy and the deployment commands below were used and worked as written (section 2). No V1.0 release or tag exists. Spec: `specs/SPEC-005-ci-release.md`; decision: ADR-018.
 
 Expected public address after authorisation: **https://mabdelaziz.github.io/qr-pocket/**
 

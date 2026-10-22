@@ -1,8 +1,22 @@
 # QR Pocket — Progress
 
-**Current milestone:** Phase 5 (SPEC-005 gated deployment) — **prepared, cloud CI green on [PR #5](https://github.com/Mabdelaziz/qr-pocket/pull/5)** ([run 39691268609](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39691268609) @ `ccab2bf`, 2026-10-22; 269 unit + 135 browser tests, public-file scan, Pages-artifact dry run). **STOPPED at the deployment gate:** PR #5 is not merged, GitHub Pages is disabled, `deploy.yml` has never been run, no release/tag/deployment exists (verified by API 2026-10-22). Phase 4 is merged (PR #4, `main` `a88bd87`, [CI run 39685692069](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39685692069)); nine automated review threads on PR #4 were answered, resolved and fixed before the merge (`7d5380b`), no protection was bypassed.
-**Next small task (needs your authorisation):** approve merging PR #5 and the first test deployment (enable Pages exactly as in `docs/DEPLOYMENT.md` section 2, including the `main`-only environment policy, then dispatch *Deploy* on `main`); then run `docs/UAT_CHECKLIST.md` on the phone.
+**Current milestone:** **Gate G3 — first UAT deployment is LIVE at https://mabdelaziz.github.io/qr-pocket/** (commit `c42af96`, deploy [run 39721994215](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39721994215), 2026-10-22). Phase 5 merged ([PR #5](https://github.com/Mabdelaziz/qr-pocket/pull/5)). **Waiting for your physical Android UAT results and the final release decision.** No V1.0 tag and no GitHub release exist (verified by API).
+**Next small task:** you run `docs/UAT_CHECKLIST.md` on the phone (and the Windows Edge steps in `docs/USER_GUIDE.md`); I record results and fix defects through pull requests; then your decision on V1.0.
 
+
+
+## Phase 5 / G3 — first UAT deployment (2026-10-22)
+
+| Item | Result |
+|---|---|
+| PR #5 | merged at `c42af96` after green checks on head `712b25e`; all review threads resolved; no KILL_SWITCH marker present |
+| Main CI on `c42af96` | [run 39712057640](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39712057640): attempts 1 and 2 failed **only** at `npm audit --omit=dev` because the npm registry audit endpoint returned HTTP 503 (npm status page: "Minor Service Outage"); everything else passed. The gate was not weakened; the failed job was re-run after npm reported healthy, **attempt 3 PASS (all steps)**. |
+| Pages configuration (API-verified) | source = GitHub Actions (`build_type: workflow`), HTTPS enforced; environment `github-pages`: `custom_branch_policies: true`, deployment branch policies = `main` (branch) only; default workflow token = read |
+| Deploy | [run 39721994215](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39721994215) from `main` @ `c42af96`: guard, full CI, publish, live check — **all success**. Published the artifact produced by the verified CI jobs; nothing rebuilt in the deploy job. |
+| Live checks (independent curl after the run) | start page 200 text/html; `/qr-pocket` -> 301 -> `/qr-pocket/`; `version.json` = commit `c42af96…`, ref `refs/heads/main`, run `39721994215` (matches this deployment); manifest scope/start_url/id `/qr-pocket/`, display standalone; `sw.js` 200 application/javascript; `icons/icon-512.png` 200 image/png; `Cache-Control: max-age=600` as expected; `deployments` list = 1 (`github-pages`, `c42af96`); tags 0; releases 0 |
+
+**NOT RUN:** every physical-phone check (`docs/UAT_CHECKLIST.md`), real Chrome install prompt / standalone launch / Add to Home screen on Android, TalkBack, real scanners, airplane mode on a phone, installed-PWA update on a phone, Windows Edge install by a person. Automated browser tests do not count as these.
+**Observed hosting/CSP/service-worker issues:** none so far (Pages ignores response headers, so the meta-tag CSP applies; the worker is served with a JavaScript type and scope `/qr-pocket/`). Real-browser behaviour on Pages is unverified until you test.
 
 ## Phase 5 evidence (actual CI runs, branch `phase-5-deploy`)
 
