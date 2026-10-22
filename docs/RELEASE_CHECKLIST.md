@@ -28,7 +28,7 @@ Status: DRAFT (Phase 0). Nothing here has been executed. Each tick requires evid
 Users with the app installed keep the old version until the new service worker installs; they see "Update available — Reload". Old caches are removed on activation. Expect up to one launch of delay.
 
 ## E. Rollback
-1. Fast: re-run Deploy workflow on the previous known-good tag/commit (`workflow_dispatch` input `ref`).
+1. Fast path does not exist by design: *Deploy* has no inputs and only deploys `main`. Use step 2.
 2. Or `git revert <bad-commit>` on `main`, push (needs approval), run Deploy.
 3. Because the SW uses revisioned precache, clients fetch the rolled-back build as a normal "update"; verify banner appears.
 4. Kill-switch if an SW itself is broken: ship a build whose `sw.js` unregisters itself and clears `qr-pocket*` caches (`self.registration.unregister()`); never delete IndexedDB data.

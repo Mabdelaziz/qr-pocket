@@ -1,6 +1,6 @@
 # QR Pocket — Phase 4 report (SPEC-004 PWA install and offline)
 
-Date: 2026-10-21 · Branch `phase-4-pwa` · [PR #4](https://github.com/Mabdelaziz/qr-pocket/pull/4) (not merged) · Verified by [CI run 39673943074](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39673943074) (commit `74eedb6`). Evidence: `docs/PROGRESS.md`, `docs/TRACEABILITY.md`; decisions: ADR-017.
+Date: 2026-10-21 · Branch `phase-4-pwa` · [PR #4](https://github.com/Mabdelaziz/qr-pocket/pull/4) (merged 2026-10-22 as `a88bd87`; main CI [run 39685692069](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39685692069) green) · Verified by [CI run 39673943074](https://github.com/Mabdelaziz/qr-pocket/actions/runs/39673943074) (commit `74eedb6`). Evidence: `docs/PROGRESS.md`, `docs/TRACEABILITY.md`; decisions: ADR-017.
 
 ## Installation behaviour
 - **Manifest** `/qr-pocket/manifest.webmanifest`: name/short name "QR Pocket", `id`/`start_url`/`scope` `/qr-pocket/`, standalone, theme `#FFFFFF`, background `#F5F7FB`, icons 192 and 512 ("any"), 512 maskable, SVG.
@@ -25,7 +25,11 @@ axe (WCAG 2.0–2.2 A/AA): 0 violations on the offline notice, ready notice and 
 3. Firefox/WebKit results use Playwright's desktop builds, not Safari/iOS or Firefox release builds; the install event is Chromium-only and synthetic in tests; no Lighthouse installability audit yet.
 4. Update checks depend on the browser (navigation, ≤ 24 h) plus our hourly foreground check; two open tabs can briefly disagree; `/qr-pocket` without the slash is not served offline.
 5. Storage can still be cleared by the user or evicted by the browser; there is no backup and none is claimed.
-6. Workbox adds 334 dev-only packages to the supply chain (Dependabot and `npm audit` watch them).
+6. **Two tabs and the install/update notices (accepted limitation).** Notice state lives in `localStorage`, which is shared by tabs, but each tab decides to show a notice from its own in-memory state. Two tabs open at the same moment can therefore both show the install prompt or the "ready offline" notice once; the stored cooldown still applies afterwards, and nothing is lost or repeated beyond that. Not fixed because a cross-tab lock would add code for a cosmetic duplicate (recorded after review feedback on PR #4).
+7. Workbox adds 334 dev-only packages to the supply chain (Dependabot and `npm audit` watch them).
+
+## Review note
+PR #4 received automated review threads (Sourcery). Valid findings were fixed in `7d5380b` with new tests (kill switch scope and unregister, whitespace-aware update warning, future timestamps, refused native prompt, engagement needs a visitor action); all threads were answered and resolved before the merge. No branch protection was bypassed.
 
 ## Next
 Phase 5 (SPEC-005): a manual, gated deploy workflow (Pages still needs your separate authorisation), then the physical-phone UAT.

@@ -10,8 +10,8 @@ A service worker lives in the browser, not on the server: a bad release can keep
 
 ## Levels of response (try in order)
 1. **Fix forward (normal).** Deploy a corrected build. Browsers fetch `sw.js` on navigation (at most every 24 h otherwise); users see "A new version is ready" and press Reload.
-2. **Rollback.** Re-run the deploy workflow on the last known-good commit/tag (`docs/RELEASE_CHECKLIST.md` §E). Because the precache is revisioned, clients treat it as an ordinary update. A rollback does not help users stuck on a worker that never offers updates; use step 3.
-3. **Kill switch.** Deploy `docs/recovery/kill-switch-sw.js` as `/qr-pocket/sw.js` (copy it over `dist/sw.js` in a hotfix build; keep everything else from the last good build).
+2. **Rollback.** Revert the faulty commit by pull request, merge, run *Deploy* (`docs/DEPLOYMENT.md` section 3). Because the precache is revisioned, clients treat it as an ordinary update. A rollback does not help users stuck on a worker that never offers updates; use step 3.
+3. **Kill switch.** Publish `docs/recovery/kill-switch-sw.js` as `/qr-pocket/sw.js` through the gated pipeline: open a pull request that adds the empty marker file `recovery/KILL_SWITCH`, merge it, and run *Deploy*. CI then swaps `dist/sw.js` for the emergency worker after all tests passed on the normal build (`scripts/apply-kill-switch.mjs`), marks `version.json` with `"recovery": "kill-switch"`, and prints a warning. This is the one case where published bytes differ from tested bytes (the emergency worker has its own test). To end the recovery, delete the marker in a later pull request together with the fix.
    - Effect on each browser at its next update check: the kill-switch worker installs at once (`skipWaiting`), deletes this app's caches (names starting `qr-pocket` that contain its own scope URL, so a sibling project on the same `github.io` origin is never touched), and unregisters itself even if cache cleanup fails. Requests go straight to the network again. It has no `fetch` handler and never opens IndexedDB.
    - Existing open tabs keep running until reloaded; a reload then loads the app from the network.
    - While the kill switch is deployed the page still tries to register `sw.js`, so the browser re-installs and re-removes it on each visit. That is harmless (a few bytes) but means the kill switch is a **temporary** measure: ship a fixed build as soon as possible (step 1).
@@ -21,7 +21,7 @@ A service worker lives in the browser, not on the server: a bad release can keep
 ## Operator checklist when a bad worker is suspected
 - [ ] Reproduce in a fresh browser profile and in a profile with the old worker installed (the second one is what users have).
 - [ ] Decide: fix forward, rollback, or kill switch. Prefer fix forward when the app itself loads.
-- [ ] If using the kill switch: build, replace `dist/sw.js` with `docs/recovery/kill-switch-sw.js`, deploy through the normal gated workflow (never by hand), verify in an installed-worker profile.
+- [ ] If using the kill switch: add `recovery/KILL_SWITCH` by pull request, merge, run *Deploy* (never publish by hand), check `/qr-pocket/version.json` shows `"recovery": "kill-switch"`, verify in an installed-worker profile.
 - [ ] Record the incident, cause and the follow-up fix in `docs/PROGRESS.md`; add a regression test.
 - [ ] Never delete or migrate IndexedDB as part of recovery.
 
